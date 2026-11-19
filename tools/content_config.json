@@ -1,0 +1,14 @@
+{
+  "sheet_id": "1F4W4FKnVjTFQ8FTKpmcyNoAP6xOYyBbhZxqPXAINbxk",
+  "tabs": {
+    "展區": "areas.json",
+    "動物": "animals.json",
+    "科普": "facts.json",
+    "測驗": "quiz.json",
+    "保育員對話": "dialogues.json",
+    "腳印": "footprints.json",
+    "集章": "stamps.json",
+    "成就": "achievements.json",
+    "宣導": "campaigns.json"
+  }
+}

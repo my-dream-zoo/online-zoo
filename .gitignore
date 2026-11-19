@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.bak*
+_local/
+*密碼*
+_交辦單*
+_Codex回報*
+_codex_*
