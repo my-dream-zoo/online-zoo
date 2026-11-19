@@ -16,7 +16,7 @@
 離線匯出（PowerShell，可在任何工作目錄執行）：
 
 ```powershell
-& 'C:\Users\User\tools\python\cpython-3.12.16-windows-x86_64-none\python.exe' 'D:\昀ㄉ工作室\ZOO壽山動物園\線上動物園\正式版\online-zoo\tools\export_content.py' --from-dir 'D:\昀ㄉ工作室\ZOO壽山動物園\線上動物園\正式版\online-zoo\tools\test_fixtures'
+& 'C:\Users\User\tools\python\cpython-3.12.16-windows-x86_64-none\python.exe' '.\tools\export_content.py' --from-dir '.\tools\test_fixtures'
 ```
 
 將上面的程式路徑改成 `tools\test_export.py` 並移除 `--from-dir` 及其參數，即可執行單元測試。
