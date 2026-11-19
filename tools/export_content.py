@@ -19,7 +19,8 @@ def convert(tab, text):
     missing = [k for k in SCHEMA[tab] if k not in fields]
     if missing:
         raise ValueError(f'{tab}：缺少欄位：{"、".join(missing)}')
-    if len(fields) != len(set(fields)):
+    named = [k.strip() for k in fields if k.strip()]  # gviz 會把空白欄補成空欄名，略過
+    if len(named) != len(set(named)):
         raise ValueError(f'{tab}：欄名重複')
     rows, seen, skipped = [], {}, 0
     for number, row in enumerate(reader, 2):

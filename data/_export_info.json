@@ -1,0 +1,43 @@
+{
+  "匯出時間": "2026-11-19T09:40:46.081670+00:00",
+  "來源": "Google 試算表：1F4W4FKnVjTFQ8FTKpmcyNoAP6xOYyBbhZxqPXAINbxk",
+  "檔案": {
+    "areas.json": {
+      "筆數": 0,
+      "略過未核准": 4
+    },
+    "animals.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "facts.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "quiz.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "dialogues.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "footprints.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "stamps.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "achievements.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    },
+    "campaigns.json": {
+      "筆數": 0,
+      "略過未核准": 0
+    }
+  },
+  "錯誤": []
+}
