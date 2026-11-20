@@ -309,7 +309,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120214556';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120215350';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -499,7 +500,7 @@ function box(w,h,d,mat,x,y,z,parent){ const m=new THREE.Mesh(rboxGeo(w,h,d),mat)
 // 大量重複的東西（矮牆、樹、花台、荷葉…）用 InstancedMesh 一次畫，手機才跑得動
 const INST={};
 function inst(key,geo,mat,mtx,shadow=true){ const e=(INST[key]??={geo,mat,list:[],shadow}); e.list.push(mtx); const i=e.list.length-1; if(e.mesh&&i<e.mesh.count){ e.mesh.setMatrixAt(i,mtx); e.mesh.instanceMatrix.needsUpdate=true; } return i; }
-function flushInst(){ for(const k in INST){ const {geo,mat,list,shadow}=INST[k]; const spare=k.startsWith('st_')?60:(k.startsWith('q_')||k.startsWith('crown')||k==='trunk')?40:0; if(!list.length&&!spare) continue; const im=new THREE.InstancedMesh(geo,mat,list.length+spare); list.forEach((m,i)=>im.setMatrixAt(i,m)); if(spare){ const Z=new THREE.Matrix4().makeScale(0,0,0); for(let i=list.length;i<list.length+spare;i++) im.setMatrixAt(i,Z); im.frustumCulled=false; }   /* 行道樹多留 60 個空位給複製的樹 */ im.castShadow=shadow; im.receiveShadow=true; scene.add(im); INST[k].mesh=im; } }
+function flushInst(){ for(const k in INST){ const {geo,mat,list,shadow}=INST[k]; const spare=k.startsWith('st_')?60:(k.startsWith('q_')||k.startsWith('h_')||k.startsWith('crown')||k==='trunk')?40:0; if(!list.length&&!spare) continue; const im=new THREE.InstancedMesh(geo,mat,list.length+spare); list.forEach((m,i)=>im.setMatrixAt(i,m)); if(spare){ const Z=new THREE.Matrix4().makeScale(0,0,0); for(let i=list.length;i<list.length+spare;i++) im.setMatrixAt(i,Z); im.frustumCulled=false; }   /* 行道樹多留 60 個空位給複製的樹 */ im.castShadow=shadow; im.receiveShadow=true; scene.add(im); INST[k].mesh=im; } }
 const M4=(x,y,z,ry=0,sx=1,sy=sx,sz=sx)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),new THREE.Vector3(sx,sy,sz));
 // 地磚、紅磚步道的貼圖
 function tileTex(base,line,n=8,rep=1){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,256,256); const t=256/n;
@@ -520,38 +521,98 @@ const TREE_MAT={ pot:new THREE.MeshStandardMaterial({color:'#ec9f7b',roughness:.
   palm:std('#c08a55'), leaf:new THREE.MeshStandardMaterial({color:'#62c652',roughness:.7}), nut:new THREE.MeshStandardMaterial({color:'#f3cc45',roughness:.6}),
   cactus:new THREE.MeshStandardMaterial({color:'#58b85a',roughness:.7}), flower:new THREE.MeshStandardMaterial({color:'#ff7fae',roughness:.6}), pine:new THREE.MeshStandardMaterial({color:'#3fa86e',roughness:.75}), pine2:new THREE.MeshStandardMaterial({color:'#5cc289',roughness:.75}) };
 
+/* ---------- 棲地植物（2026-11-20 作者：每區的植物要符合附近展場的棲地；3D 加 2D 貼圖做質感和葉子） ----------
+   狐獴島＝喀拉哈里莽原（金合歡、蘆薈、乾草）；孟加拉虎島＝印度森林（竹叢、闊葉樹、高草）；雨林島＝熱帶雨林（椰子、龜背芋、蕨類、大樹）；
+   水邊島＝水邊濕地（椰子、蘆葦、闊葉樹）；台灣原生島＝台灣山林（針葉樹、筆筒樹）；兒童牧場島＝農場果樹；其他＝公園泡泡樹
+   樹幹、樹冠、錐形是 3D；葉子、草、蘆葦、蕨類、椰子葉是 2D 貼圖卡片（交叉面片）；樹冠也貼上葉子紋理 */
+const HABITAT={狐獴島:'savanna',孟加拉虎島:'tiger',雨林島:'rain',水邊島:'wet',台灣原生島:'taiwan',兒童牧場島:'farm'};
+const PT2={};
+function plantCard(kind){ if(PT2[kind]) return PT2[kind]; const S={frond:[128,384],fern:[256,256],ffrond:[128,384],monstera:[256,384],grassD:[256,160],grassG:[256,160],reed:[128,384],bamboo:[256,256]}[kind]; const c=document.createElement('canvas'); c.width=S[0]; c.height=S[1]; const g=c.getContext('2d'), W=S[0], H=S[1];
+  const leaf=(x,y,len,wid,ang,col)=>{ g.save(); g.translate(x,y); g.rotate(ang); g.fillStyle=col; g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(wid,-len*.45,0,-len); g.quadraticCurveTo(-wid,-len*.45,0,0); g.fill(); g.strokeStyle='rgba(30,70,25,.35)'; g.lineWidth=1.2; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-len*.92); g.stroke(); g.restore(); };
+  const greens=['#4fae45','#5cbd4f','#3f9a3c','#6cc95a'];
+  if(kind==='frond'||kind==='ffrond'){ const fern=kind==='ffrond'; g.strokeStyle=fern?'#4a7a2e':'#7a8f3a'; g.lineWidth=5; g.beginPath(); g.moveTo(W/2,H); g.quadraticCurveTo(W/2+6,H/2,W/2,6); g.stroke();   /* 椰子葉／蕨葉：中間葉脈＋兩排小葉 */
+    for(let y=H-14;y>14;y-=fern?10:13){ const t=1-(H-y)/H, len=(fern?46:58)*(.35+.65*Math.sin(Math.PI*(1-t*.9))), col=greens[(y>>3)%4]; leaf(W/2,y,len,fern?6:9,-1.05,col); leaf(W/2,y,len,fern?6:9,1.05,col); } }
+  else if(kind==='fern'){ for(let k=0;k<5;k++){ const a=-1.1+k*.55; g.save(); g.translate(W/2,H); g.rotate(a); g.strokeStyle='#4a7a2e'; g.lineWidth=3; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-H*.92); g.stroke(); for(let y=-12;y>-H*.9;y-=9){ const len=22*(1-(-y)/H)+6; leaf(0,y,len,4,-1.1,greens[k%4]); leaf(0,y,len,4,1.1,greens[(k+1)%4]); } g.restore(); } }   /* 一叢蕨類 */
+  else if(kind==='monstera'){ g.strokeStyle='#3f8a35'; g.lineWidth=7; g.beginPath(); g.moveTo(W/2,H); g.quadraticCurveTo(W/2-10,H*.7,W/2,H*.5); g.stroke();   /* 龜背芋：心形大葉＋裂口＋莖 */
+    g.fillStyle='#3e9a45'; g.beginPath(); g.moveTo(W/2,H*.52); g.bezierCurveTo(W*.02,H*.48,W*.02,H*.08,W/2,H*.12); g.bezierCurveTo(W*.98,H*.08,W*.98,H*.48,W/2,H*.52); g.fill();
+    g.globalCompositeOperation='destination-out'; for(let k=0;k<4;k++){ const y=H*(.18+k*.08); g.beginPath(); g.moveTo(W*.06,y); g.lineTo(W*.32,y+10); g.lineTo(W*.06,y+16); g.fill(); g.beginPath(); g.moveTo(W*.94,y); g.lineTo(W*.68,y+10); g.lineTo(W*.94,y+16); g.fill(); } [[.36,.3],[.64,.3],[.4,.4],[.6,.4]].forEach(([u,v])=>{ g.beginPath(); g.ellipse(W*u,H*v,7,11,0,0,7); g.fill(); }); g.globalCompositeOperation='source-over';
+    g.strokeStyle='rgba(20,60,20,.4)'; g.lineWidth=2; g.beginPath(); g.moveTo(W/2,H*.5); g.lineTo(W/2,H*.15); g.stroke(); g.fillStyle='rgba(255,255,255,.12)'; g.beginPath(); g.ellipse(W*.4,H*.22,30,16,-.4,0,7); g.fill(); }
+  else if(kind==='grassD'||kind==='grassG'){ const cols=kind==='grassD'?['#d8c071','#c9a95a','#e3cf88','#b99a4c']:['#6fbe4f','#5aa845','#86cc5e','#4f9a3e']; for(let k=0;k<26;k++){ const x=W*(.08+.84*Math.random()), h=H*(.45+.5*Math.random()), b=(Math.random()-.5)*40; g.strokeStyle=cols[k%4]; g.lineWidth=4+Math.random()*3; g.lineCap='round'; g.beginPath(); g.moveTo(x,H); g.quadraticCurveTo(x+b*.3,H-h*.6,x+b,H-h); g.stroke(); } }   /* 一叢草 */
+  else if(kind==='reed'){ for(let k=0;k<9;k++){ const x=W*(.15+.7*Math.random()), h=H*(.55+.4*Math.random()), b=(Math.random()-.5)*24; g.strokeStyle=['#7fb45a','#6a9e4a','#93c26a'][k%3]; g.lineWidth=4; g.lineCap='round'; g.beginPath(); g.moveTo(x,H); g.quadraticCurveTo(x,H-h*.5,x+b,H-h); g.stroke(); }
+    [[.42,.12],[.62,.2]].forEach(([u,v])=>{ g.fillStyle='#7a4a28'; g.beginPath(); g.roundRect(W*u-6,H*v,12,42,6); g.fill(); g.strokeStyle='#6a9e4a'; g.lineWidth=3; g.beginPath(); g.moveTo(W*u,H*v+42); g.lineTo(W*u,H); g.stroke(); }); }   /* 蘆葦＋香蒲 */
+  else if(kind==='bamboo'){ for(let k=0;k<22;k++){ const a=Math.random()*Math.PI*2, r=Math.random()*W*.32; leaf(W/2+Math.cos(a)*r,H*.6+Math.sin(a)*r*.6,40+Math.random()*24,6,a+Math.PI/2+(Math.random()-.5),greens[k%4]); } }   /* 竹葉 */
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return PT2[kind]=t; }
+function surfTex(kind){ const key='s_'+kind; if(PT2[key]) return PT2[key]; const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,128,128);
+  if(kind==='foliage'){ for(let k=0;k<70;k++){ const x=Math.random()*128, y=Math.random()*128, a=Math.random()*6; g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=k%3?'rgba(40,90,30,.22)':'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(0,0,9,5,0,0,7); g.fill(); g.restore(); } }   /* 樹冠：一片片葉子的紋理 */
+  else if(kind==='needle'){ for(let k=0;k<160;k++){ const x=Math.random()*128, y=Math.random()*128; g.strokeStyle=k%4?'rgba(20,70,40,.3)':'rgba(255,255,255,.35)'; g.lineWidth=1.6; g.beginPath(); g.moveTo(x,y); g.lineTo(x+(Math.random()-.5)*6,y+10); g.stroke(); } }   /* 針葉 */
+  else if(kind==='bark'){ for(let k=0;k<12;k++){ g.strokeStyle='rgba(70,40,20,.28)'; g.lineWidth=2; g.beginPath(); const x=k*11+Math.random()*4; g.moveTo(x,0); g.bezierCurveTo(x+4,40,x-4,90,x+2,128); g.stroke(); } }   /* 樹皮 */
+  else if(kind==='rings'){ for(let y=0;y<128;y+=32){ g.fillStyle='rgba(60,90,30,.45)'; g.fillRect(0,y,128,4); g.fillStyle='rgba(255,255,255,.3)'; g.fillRect(0,y+4,128,2); } }   /* 竹節 */
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return PT2[key]=t; }
+const surfM=(color,kind,ru,rv,extra={})=>{ const tx=surfTex(kind).clone(); tx.needsUpdate=true; tx.repeat.set(ru,rv); return new THREE.MeshStandardMaterial({color,map:tx,roughness:.8,...extra}); };
+const cardM=kind=>new THREE.MeshStandardMaterial({map:plantCard(kind),alphaTest:.45,side:THREE.DoubleSide,roughness:.85});
+const crossGeo=(w,h,n)=>mergeGeometries([...Array(n)].map((_,i)=>new THREE.PlaneGeometry(w,h).translate(0,h/2,0).rotateY(i*Math.PI/n)));
+/* 零件表：key → [形狀, 材質, 有沒有影子]；之後補種的植物也要畫得出來，所以全部先登記 */
+const PP={
+  frond:[new THREE.PlaneGeometry(.46,1.3).rotateX(Math.PI/2).translate(0,0,.64).rotateX(.42),cardM('frond'),false],
+  ffrond:[new THREE.PlaneGeometry(.4,1.1).rotateX(Math.PI/2).translate(0,0,.54).rotateX(.25),cardM('ffrond'),false],
+  fern:[crossGeo(.95,.8,3),cardM('fern'),false], grassD:[crossGeo(.6,.4,3),cardM('grassD'),false], grassG:[crossGeo(.7,.55,3),cardM('grassG'),false],
+  reed:[crossGeo(.5,1.35,2),cardM('reed'),false], bambooLf:[crossGeo(.9,.7,2),cardM('bamboo'),false],
+  monstera:[new THREE.PlaneGeometry(.55,.85).translate(0,.42,0).rotateX(-.3),cardM('monstera'),false],
+  stalk:[new THREE.CylinderGeometry(.045,.055,1,7).translate(0,.5,0),surfM('#7cbf55','rings',1,3),true],
+  bark:[new THREE.CylinderGeometry(.06,.1,1,8).translate(0,.5,0),surfM('#8a5e3c','bark',2,2),true],
+  fernTrunk:[new THREE.CylinderGeometry(.08,.11,1,8).translate(0,.5,0),surfM('#5a3f2a','bark',2,3),true],
+  acacia:[new THREE.SphereGeometry(1,20,10),surfM('#8fae4e','foliage',3,1.2),true],
+  broad:[new THREE.SphereGeometry(.6,16,12),surfM('#4f9a45','foliage',2,2),true], broad2:[new THREE.SphereGeometry(.6,16,12),surfM('#6aaf4f','foliage',2,2),true],
+  fruitTree:[new THREE.SphereGeometry(.6,16,12),surfM('#6fbf55','foliage',2,2),true], fruit:[new THREE.SphereGeometry(.06,8,6),new THREE.MeshStandardMaterial({color:'#e8453c',roughness:.5}),false],
+  conifer:[new THREE.ConeGeometry(.55,.85,14),surfM('#3e8f5f','needle',3,2),true], conifer2:[new THREE.ConeGeometry(.55,.85,14),surfM('#559f6c','needle',3,2),true],
+  aloe:[new THREE.ConeGeometry(.055,.55,5).translate(0,.27,0).rotateX(.55),new THREE.MeshStandardMaterial({color:'#7fae8a',roughness:.7}),true],
+  spike:[new THREE.CylinderGeometry(.014,.02,.7,5).translate(0,.35,0),std('#7a8f5a'),false], spikeTop:[new THREE.ConeGeometry(.055,.2,8).translate(0,.1,0),new THREE.MeshStandardMaterial({color:'#f2873a',roughness:.6}),false] };
+const PKEYS=Object.keys(PP).map(k=>'h_'+k);   /* 登記到 InstancedMesh 用的 key */
+// 公園泡泡樹的樹冠也加上葉子紋理
+['a','b','c','y','p','o','t'].forEach(k=>{ const tx=surfTex('foliage').clone(); tx.needsUpdate=true; tx.repeat.set(2,2); TREE_MAT[k].map=tx; TREE_MAT[k].needsUpdate=true; });
 const TREES=[];
 const KEEP_CLEAR=[]; const HILLS=[];   // 可以走上去的小山丘
 function groundY(x,z){ let y=0; for(const H of HILLS){ const dx=x-H.x, dz=z-H.z, lx=dx*H.c-dz*H.s, lz=dx*H.s+dz*H.c, u=lx/H.a, v=lz/H.b, q=1-u*u-v*v; if(q>0) y=Math.max(y,H.h*Math.sqrt(q)-.02); } return y; }   // 要留給人走的通道：[x,z,半徑]，樹、灌木、花都不放
 const CLIMB=[];   // 獼猴可以爬上爬下的地方：路燈、樹、電視機佈景頂
-function tree(x,z,sc=1,pot=true,yellow=0){ const parts=[]; const I0=inst; const inst2=(key,g,m,mtx,sh)=>{ parts.push({key,i:I0(key,g,m,mtx,sh),m:mtx}); };
-  const isl=pot?'':(islandOf(x,z)||''), rr=Math.random(), RY=Math.random()*6;
-  const kind=pot?'bubble':isl==='狐獴島'&&rr<.7?'cactus':(isl==='雨林島'||isl==='水邊島')&&rr<.8?'palm':(isl==='台灣原生島'&&rr<.6)||(isl==='孟加拉虎島'&&rr<.3)?'pine':'bubble';   /* 依島的主題換植物 */
+function tree(x,z,sc=1,pot=true,yellow=0,baseY=0){ const parts=[]; const I0=inst; const inst2=(key,g,m,mtx,sh)=>{ if(baseY) mtx.elements[13]+=baseY; parts.push({key,i:I0(key,g,m,mtx,sh),m:mtx}); };
+  const P2=(k,mtx)=>{ const [g,m,sh]=PP[k]; inst2('h_'+k,g,m,mtx,sh); };
+  const MQ=(px,py,pz,rx,ry,sx,sy=sx,sz=sx)=>new THREE.Matrix4().compose(new THREE.Vector3(px,py,pz),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,0)),new THREE.Vector3(sx,sy,sz));
+  const isl=pot?'':(islandOf(x,z)||''), hab=pot?'park':(HABITAT[isl]||'park'), rr=Math.random(), RY=Math.random()*6;
+  const kind=hab==='savanna'?(rr<.65?'acacia':'aloe'):hab==='tiger'?(rr<.45?'bamboo':'broad'):hab==='rain'?(rr<.35?'palm':rr<.65?'monstera':'broad'):hab==='wet'?(rr<.4?'palm':rr<.7?'reeds':'broad'):hab==='taiwan'?(rr<.55?'conifer':rr<.85?'treefern':'broad'):hab==='farm'?(rr<.7?'fruit':'broad'):'bubble';   /* 依棲地挑植物 */
   const y0=pot?.4*sc:0; let top=y0+1.5*sc, rad=pot?.36*sc:.16;
+  const ground=(k,n,rmax)=>{ for(let j=0;j<n;j++){ const a=RY+j*2.4, r=rmax*(.35+.65*Math.random()); P2(k,MQ(x+Math.sin(a)*r*sc,0,z+Math.cos(a)*r*sc,0,a,sc*(.8+Math.random()*.4))); } };   /* 樹下的草、蕨 */
   if(pot){ inst2('pot',TREE_GEO.pot,TREE_MAT.pot,M4(x,0,z,0,sc)); inst2('soil',TREE_GEO.soil,TREE_MAT.soil,M4(x,.39*sc,z,0,sc),false); }
-  if(kind==='palm'){   /* 椰子樹：一節一節往旁邊彎的樹幹＋往下垂的大葉子＋黃色椰子 */
-    const lean=(Math.random()-.5)*.5, la=Math.random()*6; let px=x, pz=z;
-    for(let i=0;i<6;i++){ const t=i/5; px=x+Math.sin(la)*lean*t*t*sc; pz=z+Math.cos(la)*lean*t*t*sc; inst2('q_palm',TREE_GEO.palmSeg,TREE_MAT.palm,M4(px,(.15+i*.27)*sc,pz,i*.7,sc*(1-.06*i),sc,sc*(1-.06*i))); }
-    const ty=(.15+5*.27+.12)*sc; for(let k=0;k<8;k++){ const m=new THREE.Matrix4().compose(new THREE.Vector3(px,ty,pz),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,k/8*Math.PI*2+RY,0)),new THREE.Vector3(sc*1.05,sc,sc*1.05)); inst2('q_leaf',TREE_GEO.leaf,TREE_MAT.leaf,m); }
-    for(let k=0;k<3;k++){ const a=k*2.1+RY; inst2('q_nut',TREE_GEO.nut,TREE_MAT.nut,M4(px+Math.sin(a)*.09*sc,ty-.1*sc,pz+Math.cos(a)*.09*sc,0,sc)); }
-    top=ty; rad=.16; }
-  else if(kind==='cactus'){   /* 仙人掌：圓滾滾的身體＋兩隻手＋頭頂一朵粉紅花 */
-    const s=sc*.8; inst2('q_cactus',TREE_GEO.cactus,TREE_MAT.cactus,M4(x,.55*s,z,RY,s));
-    [[0,.42],[2.3,.62]].forEach(([da,y])=>{ const ax=Math.cos(RY+da), az=-Math.sin(RY+da); inst2('q_arm',TREE_GEO.arm,TREE_MAT.cactus,M4(x+ax*.44*s,(y+.2)*s,z+az*.44*s,RY,s)); inst2('q_arm',TREE_GEO.arm,TREE_MAT.cactus,new THREE.Matrix4().compose(new THREE.Vector3(x+ax*.3*s,y*s,z+az*.3*s),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,RY+da,Math.PI/2)),new THREE.Vector3(s*.95,s*.55,s*.95))); });   /* 手往外伸、再往上彎；兩隻手不同方向，從哪邊看都看得到 */
-    inst2('q_flower',TREE_GEO.flower,TREE_MAT.flower,M4(x,1.12*s,z,0,s*1.2)); top=1.1*s; rad=.3*s; }
-  else if(kind==='pine'){   /* Q 版松樹：三層圓圓的錐形 */
-    inst2('trunk',TREE_GEO.trunk,TREE_MAT.trunk,M4(x,.3*sc,z,0,sc,.75*sc,sc));
-    [[.55,1],[.95,.8],[1.3,.6]].forEach(([y,s],i)=>inst2(i%2?'q_pine2':'q_pine',TREE_GEO.cone,i%2?TREE_MAT.pine2:TREE_MAT.pine,M4(x,y*sc,z,RY+i,sc*s))); top=1.6*sc; }
-  else {   /* 泡泡樹：一顆大泡泡＋幾顆小泡泡；兒童牧場島用繽紛顏色 */
-    const pal=isl==='兒童牧場島'?'pot':'abc', k=Math.random()<yellow?'y':pal[Math.floor(Math.random()*3)], k2=()=>Math.random()<.7?k:pal[Math.floor(Math.random()*3)];
+  if(kind==='palm'||kind==='treefern'){   /* 椰子樹／筆筒樹：一節一節的樹幹，頂端一圈 2D 大葉子 */
+    const fernT=kind==='treefern', lean=fernT?0:(Math.random()-.5)*.5, la=Math.random()*6; let px=x, pz=z; const nSeg=fernT?5:6;
+    for(let i=0;i<nSeg;i++){ const t=i/(nSeg-1); px=x+Math.sin(la)*lean*t*t*sc; pz=z+Math.cos(la)*lean*t*t*sc; if(fernT) P2('fernTrunk',MQ(px,i*.3*sc,pz,0,i,sc,.32*sc,sc)); else inst2('q_palm',TREE_GEO.palmSeg,TREE_MAT.palm,M4(px,(.15+i*.27)*sc,pz,i*.7,sc*(1-.06*i),sc,sc*(1-.06*i))); }
+    const ty=fernT?nSeg*.3*sc:(.15+5*.27+.12)*sc, nL=fernT?10:9; for(let k=0;k<nL;k++) P2(fernT?'ffrond':'frond',MQ(px,ty,pz,0,k/nL*Math.PI*2+RY,sc*(fernT?1:1.05)));
+    if(!fernT) for(let k=0;k<3;k++){ const a=k*2.1+RY; inst2('q_nut',TREE_GEO.nut,TREE_MAT.nut,M4(px+Math.sin(a)*.09*sc,ty-.1*sc,pz+Math.cos(a)*.09*sc,0,sc)); }
+    ground(hab==='wet'?'reed':'fern',2,.7); top=ty; rad=.16; }
+  else if(kind==='acacia'){   /* 金合歡：細樹幹分岔，上面一片扁扁的大傘狀樹冠 */
+    const h=1.7*sc; P2('bark',MQ(x,0,z,0,RY,sc*.9,h*.7,sc*.9)); [-1,1].forEach(sd=>P2('bark',MQ(x+Math.cos(RY)*sd*.05*sc,h*.62,z-Math.sin(RY)*sd*.05*sc,0,RY,sc*.55,h*.5,sc*.55)));
+    [[0,0,1.25],[.45,.08,.8],[-.5,.05,.75]].forEach(([o,dy,s])=>P2('acacia',MQ(x+Math.cos(RY)*o*sc,h+dy*sc,z-Math.sin(RY)*o*sc,0,RY,sc*s,sc*s*.28,sc*s*.9)));
+    ground('grassD',4,1.1); top=h+.2*sc; }
+  else if(kind==='aloe'){   /* 蘆薈：尖尖的葉子一圈，中間一支橘色花穗 */
+    for(let k=0;k<9;k++) P2('aloe',MQ(x,0,z,0,RY+k/9*Math.PI*2,sc*(.9+Math.random()*.3))); P2('spike',MQ(x,.1*sc,z,0,0,sc)); P2('spikeTop',MQ(x,.78*sc,z,0,0,sc)); ground('grassD',3,.8); top=.9*sc; rad=.3*sc; }
+  else if(kind==='bamboo'){   /* 竹叢：幾根有竹節的竹子，頂端 2D 竹葉 */
+    for(let k=0;k<6;k++){ const a=RY+k*1.1, r=.12+Math.random()*.22, h=(1.9+Math.random()*1.1)*sc, bx=x+Math.sin(a)*r*sc, bz=z+Math.cos(a)*r*sc; P2('stalk',MQ(bx,0,bz,(Math.random()-.5)*.12,0,sc,h,sc)); P2('bambooLf',MQ(bx,h-.35*sc,bz,0,a,sc*(.9+Math.random()*.3))); P2('bambooLf',MQ(bx,h*.72,bz,0,a+1,sc*.7)); }
+    ground('grassG',3,.8); top=2.6*sc; rad=.35*sc; }
+  else if(kind==='monstera'){   /* 龜背芋叢：一片片 2D 大葉子往外開 */
+    for(let k=0;k<7;k++){ const a=RY+k/7*Math.PI*2, r=.08*sc; P2('monstera',MQ(x+Math.sin(a)*r,0,z+Math.cos(a)*r,0,a,sc*(.85+Math.random()*.35))); } ground('fern',2,.6); top=.9*sc; rad=.35*sc; }
+  else if(kind==='reeds'){ for(let k=0;k<4;k++){ const a=RY+k*1.6, r=.25*Math.random(); P2('reed',MQ(x+Math.sin(a)*r*sc,0,z+Math.cos(a)*r*sc,0,a,sc*(.8+Math.random()*.4))); } top=1.3*sc; rad=.3*sc; }
+  else if(kind==='conifer'){   /* 台灣山林的針葉樹：樹皮樹幹＋三層針葉錐 */
+    P2('bark',MQ(x,0,z,0,RY,sc,.7*sc,sc)); [[.55,1],[1.0,.82],[1.38,.62]].forEach(([y,s],i)=>P2(i%2?'conifer2':'conifer',MQ(x,y*sc,z,0,RY+i,sc*s))); ground('fern',2,.8); top=1.7*sc; }
+  else if(kind==='broad'||kind==='fruit'){   /* 闊葉樹／果樹：樹皮樹幹＋幾顆有葉子紋理的大樹冠（果樹掛紅色果子） */
+    const fr=kind==='fruit', h=(hab==='rain'?1.4:1.0)*sc; P2('bark',MQ(x,0,z,0,RY,sc,h,sc));
+    const blobs=[[0,0,0,1.1],[.42,-.12,.1,.75],[-.4,-.08,-.15,.7],[.05,.3,-.05,.7]]; blobs.forEach(([ox,oy,oz,s],i)=>{ const k=fr?'fruitTree':(i%2?'broad2':'broad'); P2(k,MQ(x+(Math.cos(RY)*ox-Math.sin(RY)*oz)*sc,h+(.4+oy)*sc,z+(-Math.sin(RY)*ox-Math.cos(RY)*oz)*sc,0,RY,sc*s,sc*s*.9,sc*s)); });
+    if(fr) for(let k=0;k<9;k++){ const a=RY+k*.7, e=(Math.random()-.3)*.9; P2('fruit',MQ(x+Math.sin(a)*Math.cos(e)*.62*sc,h+.4*sc+Math.sin(e)*.55*sc,z+Math.cos(a)*Math.cos(e)*.62*sc,0,0,sc)); }
+    ground(hab==='rain'?'fern':hab==='tiger'?'grassG':'grassG',hab==='farm'?0:3,.9); top=h+.9*sc; }
+  else {   /* 公園：有葉子紋理的泡泡樹 */
+    const pal='abc', k=Math.random()<yellow?'y':pal[Math.floor(Math.random()*3)], k2=()=>Math.random()<.7?k:pal[Math.floor(Math.random()*3)];
     inst2('trunk',TREE_GEO.trunk,TREE_MAT.trunk,M4(x,y0+.4*sc,z,0,sc));
     inst2('crown'+k,TREE_GEO.crown,TREE_MAT[k],M4(x,y0+1.05*sc,z,RY,sc*(.95+Math.random()*.15),sc*(.88+Math.random()*.15)));
     const nb=1+Math.floor(Math.random()*3); for(let j=0;j<nb;j++){ const a=RY+j*2.2, kk=k2(); inst2('crown'+kk,TREE_GEO.crown,TREE_MAT[kk],M4(x+Math.sin(a)*.32*sc,y0+(1.2+Math.random()*.25)*sc,z+Math.cos(a)*.32*sc,a,sc*(.5+Math.random()*.15))); } }
-  CLIMB.push({x,z,top,r:pot?.42*sc:.16,kind:'tree'});
-
-
-
-
+  CLIMB.push({x,z,top:top+baseY,r:pot?.42*sc:.16,kind:'tree'});
   const st={x,z,r:Math.max(rad,pot?.36*sc:.16)}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc}); }
 // 行道樹（2026-11-17 作者：取代廣場上的盆栽樹）：地上一小塊草地、周圍一圈石緣，細樹幹＋雲朵形樹冠；園方可以搬、轉、複製
 const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.085,1.3,8), crown:new THREE.SphereGeometry(.5,16,12) };   /* 行道樹也改圓滑泡泡樹冠 */
@@ -1045,10 +1106,11 @@ function makeStage(islandKey,kind,title){ const I=ISLANDS[islandKey], dx=I.x-CEN
       if(solid) STATIC.push({x,z,hw:rl*STAGE_SS*.92,hd:rf*STAGE_SS*.92,yaw:th}); else { HILLS.push({x,z,c:Math.cos(th),s:Math.sin(th),a:rl*STAGE_SS,b:rf*STAGE_SS,h}); KEEP_CLEAR.push([x,z,Math.max(rl,rf)*STAGE_SS*.85]); }   /* 2026-11-17 作者：小山丘可以走上去 */
       return {f,l,rf,rl,h,solid:!!solid}; };
     const yOn=(H,a,b)=>{ const u=(a-H.f)/H.rf, v=(b-H.l)/H.rl, q=1-u*u-v*v; return q>0?H.h*Math.sqrt(q):0; };
-    const put=(H,a,b,what)=>{ if(!H) return; const [x,z]=at(a,b), y=yOn(H,a,b); if(!H.solid&&(what==='tree'||what==='bush')) STATIC.push({x,z,r:what==='tree'?.42:.45});   /* 山丘可以走，上面的樹、灌木不能穿過去 */
+    const put=(H,a,b,what)=>{ if(!H) return; const [x,z]=at(a,b), y=yOn(H,a,b); if(!H.solid&&what==='bush') STATIC.push({x,z,r:.45});   /* 山丘可以走，上面的樹、灌木不能穿過去 */
       if(what==='flower'){ for(let i=0;i<5;i++){ const fl=new THREE.Mesh(new THREE.SphereGeometry(.085,8,6),flwM[i%3]); fl.position.set(x+(Math.random()-.5)*.6,y+.06+Math.random()*.06,z+(Math.random()-.5)*.6); scene.add(fl); } }
       else if(what==='bush'){ const bm=new THREE.Mesh(new THREE.IcosahedronGeometry(.45,1),bushM); bm.position.set(x,y+.2,z); bm.scale.set(1.25,.8,1.05); bm.castShadow=true; scene.add(bm); }
-      else if(what==='tree'&&TH.bamboo){ for(let i=0;i<5;i++){ const hgt=1.8+Math.random()*1.2, c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,hgt,6),bambooM); c.position.set(x+(Math.random()-.5)*.5,y+hgt/2,z+(Math.random()-.5)*.5); c.rotation.z=(Math.random()-.5)*.12; c.castShadow=true; scene.add(c);
+      else if(what==='tree'){ tree(x,z,1.2,false,0,y); TREES[TREES.length-1].keep=true; }   /* 展場山丘上的樹也照棲地（狐獴＝金合歡、蘆薈；老虎＝竹叢、闊葉樹） */
+      else if(what==='tree_old'&&TH.bamboo){ for(let i=0;i<5;i++){ const hgt=1.8+Math.random()*1.2, c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,hgt,6),bambooM); c.position.set(x+(Math.random()-.5)*.5,y+hgt/2,z+(Math.random()-.5)*.5); c.rotation.z=(Math.random()-.5)*.12; c.castShadow=true; scene.add(c);
           const lf=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0),crownM); lf.position.set(c.position.x,y+hgt,c.position.z); lf.scale.set(1.4,.6,1.4); scene.add(lf); } }   /* 老虎島：竹叢 */
       else if(what==='tree'){ const tk=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,1.3,7),trunkM); tk.position.set(x,y+.65,z); tk.castShadow=true; scene.add(tk); const cr=new THREE.Mesh(new THREE.SphereGeometry(.75,16,12),crownM); cr.position.set(x,y+1.65,z); cr.scale.set(1,.85,1); cr.castShadow=true; scene.add(cr); }
       else if(what==='stone'){ const st=stoneMesh(); st.position.set(x,y+.01,z); scene.add(st); } };
@@ -1160,11 +1222,12 @@ function decoCloud(q,x,y,r){ q.fillStyle='#ffffff'; q.strokeStyle='#9cc4e4'; q.l
 function decoWave(q,x,y,w,col){ q.strokeStyle=col; q.lineWidth=w*.07; q.lineCap='round'; q.beginPath(); for(let i=0;i<=40;i++){ const t=i/40; q.lineTo(x-w/2+t*w,y+Math.sin(t*Math.PI*4)*w*.06); } q.stroke(); }
 function decoStripe(q,x,y,r){ q.strokeStyle='#3b2a20'; q.lineWidth=r*.16; q.lineCap='round'; [-1,0,1].forEach(i=>{ q.beginPath(); q.moveTo(x+i*r*.45-r*.1,y-r*.6); q.quadraticCurveTo(x+i*r*.45+r*.18,y,x+i*r*.45-r*.05,y+r*.6); q.stroke(); }); }
 // 區牌柱腳的花草：程式畫的花和草（取代原本的明信片素材）
-const AREA_PLANT={入口廣場:['grass','flower:#f28cb1'],遊客服務區:['grass','flower:#8fc7ef'],狐獴島:['cactus','grass'],孟加拉虎島:['grass','flower:#f39a6b']};
+const AREA_PLANT={入口廣場:['grass','flower:#f28cb1'],遊客服務區:['grass','flower:#8fc7ef'],狐獴島:['aloe','grass:dry'],孟加拉虎島:['grass','flower:#f39a6b']};
 const PLANT_C={};
 function plantTex(spec){ if(PLANT_C[spec]) return PLANT_C[spec]; const c=document.createElement('canvas'); c.width=c.height=256; const q=c.getContext('2d'), [kind,col]=spec.split(':');
   const blade=(x,h,a,cl)=>{ q.fillStyle=cl; q.beginPath(); q.moveTo(x-9,250); q.quadraticCurveTo(x+a*.4,250-h*.6,x+a,250-h); q.quadraticCurveTo(x+a*.2,250-h*.5,x+9,250); q.closePath(); q.fill(); };
-  if(kind==='grass'){ [[60,150,-30],[95,200,-10],[128,220,6],[160,190,22],[196,140,40],[110,160,-40],[150,170,40]].forEach(([x,h,a],i)=>blade(x,h,a,i%2?'#79b85c':'#5f9f45')); }
+  if(kind==='grass'){ const dry=col==='dry'; [[60,150,-30],[95,200,-10],[128,220,6],[160,190,22],[196,140,40],[110,160,-40],[150,170,40]].forEach(([x,h,a],i)=>blade(x,h,a,dry?(i%2?'#d8c071':'#c2a557'):(i%2?'#79b85c':'#5f9f45'))); }   /* 狐獴島用乾草色（莽原） */
+  else if(kind==='aloe'){ [[128,200,0],[100,160,-45],[156,160,45],[80,120,-70],[176,120,70],[115,180,-20],[141,180,20]].forEach(([x,h,a],i)=>blade(x,h,a,i%2?'#8fbf9a':'#6f9e7e')); q.strokeStyle='#7a8f5a'; q.lineWidth=5; q.beginPath(); q.moveTo(128,250); q.lineTo(128,40); q.stroke(); q.fillStyle='#f2873a'; q.beginPath(); q.ellipse(128,46,11,26,0,0,7); q.fill(); }   /* 蘆薈（南非莽原的植物，取代仙人掌） */
   else if(kind==='cactus'){ q.fillStyle='#5f9f45'; q.beginPath(); q.roundRect(103,60,50,195,25); q.fill(); q.beginPath(); q.roundRect(55,110,36,80,18); q.fill(); q.beginPath(); q.roundRect(165,90,36,80,18); q.fill(); q.fillRect(80,160,30,22); q.fillRect(150,140,30,22); decoFlower(q,128,58,22,'#f28cb1'); }
   else { [[90,170,-25],[128,200,0],[166,165,25],[110,120,-40],[150,120,40]].forEach(([x,h,a],i)=>blade(x,h,a,i%2?'#79b85c':'#5f9f45')); [[86,82],[128,52],[172,88]].forEach(([x,y],i)=>{ q.strokeStyle='#5f9f45'; q.lineWidth=6; q.beginPath(); q.moveTo(x,y); q.lineTo(128+(x-128)*.3,250); q.stroke(); decoFlower(q,x,y,30,i===1?'#ffffff':col); }); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return PLANT_C[spec]=t; }
@@ -1563,7 +1626,7 @@ function updateButterflies(dt){ const T=performance.now()/1000; for(const b of B
 addButterfly(FORE.x0+.9,14.2,1.4,'#f5cf4a','#ffffff'); addButterfly(-3.2,6.8,1.1,'#ffffff','#f2a03b');
 Object.values(STAGES).forEach((S,i)=>{ const fx=S.front.x-S.center.x, fz=S.front.z-S.center.z, fl=Math.hypot(fx,fz), Fx=fx/fl, Fz=fz/fl; [-1,1].forEach((sd,j)=>{ const lat=sd*2.55; addButterfly(S.center.x+Fz*lat+Fx*2.5, S.center.z-Fx*lat+Fz*2.5, .9, [['#f2a03b','#ffffff'],['#9fd3f0','#ffffff'],['#f6b6c8','#ffffff'],['#fbe27a','#f2a03b']][(i*2+j)%4][0], '#ffffff'); }); });
 /* 之後才種的主題植物也要畫得出來：先把每種零件登記好（沒有也要留空位） */
-[['q_palm',TREE_GEO.palmSeg,TREE_MAT.palm],['q_leaf',TREE_GEO.leaf,TREE_MAT.leaf],['q_nut',TREE_GEO.nut,TREE_MAT.nut],['q_cactus',TREE_GEO.cactus,TREE_MAT.cactus],['q_arm',TREE_GEO.arm,TREE_MAT.cactus],['q_flower',TREE_GEO.flower,TREE_MAT.flower],['q_pine',TREE_GEO.cone,TREE_MAT.pine],['q_pine2',TREE_GEO.cone,TREE_MAT.pine2],['trunk',TREE_GEO.trunk,TREE_MAT.trunk],...'abcypot'.split('').map(c=>['crown'+c,TREE_GEO.crown,TREE_MAT[c]])].forEach(([key,geo,mat])=>{ INST[key]??={geo,mat,list:[],shadow:true}; });
+[['q_palm',TREE_GEO.palmSeg,TREE_MAT.palm,true],['q_nut',TREE_GEO.nut,TREE_MAT.nut,true],['trunk',TREE_GEO.trunk,TREE_MAT.trunk,true],...'abcy'.split('').map(c=>['crown'+c,TREE_GEO.crown,TREE_MAT[c],true]),...Object.entries(PP).map(([k,[g,m,sh]])=>['h_'+k,g,m,sh])].forEach(([key,geo,mat,sh])=>{ INST[key]??={geo,mat,list:[],shadow:sh}; });
 flushInst();
 // 浮動招牌：膠囊形大字牌，永遠轉向鏡頭；離遠一點會跟著放大，從一開始的視角就看得到
 const LABELS=[];
@@ -2549,7 +2612,7 @@ try{ const lp=JSON.parse(localStorage.getItem('zooPOS')||'null'); if(lp) Object.
 restoreClones(); applyPositions(); drawPanel(); rebuild(); person.position.set(.2,0,16.4); person.rotation.y=Math.PI; wantYaw=Math.PI; markAct(); checkHash(); setupUI();
 // 場景都蓋好之後：樹如果跟後來才放的東西（花台、長椅、垃圾桶、販賣機、路燈、電視角…）疊在一起，就把樹拿掉
 function distTo(o,x,z){ if(o.r!==undefined) return Math.max(0,Math.hypot(x-o.x,z-o.z)-o.r); const c=Math.cos(o.yaw||0), s=Math.sin(o.yaw||0), dx=x-o.x, dz=z-o.z, lx=dx*c-dz*s, lz=dx*s+dz*c; return Math.hypot(Math.max(0,Math.abs(lx)-o.hw),Math.max(0,Math.abs(lz)-o.hd)); }
-{ const treeSt=new Set(TREES.map(t=>t.st)); for(const t of TREES){ if(t.item&&savedLayout(t.item.id)) continue; const crown=.6*t.sc;
+{ const treeSt=new Set(TREES.map(t=>t.st)); for(const t of TREES){ if(t.keep||(t.item&&savedLayout(t.item.id))) continue; const crown=.6*t.sc;
     if(STATIC.some(o=>!treeSt.has(o)&&distTo(o,t.x,t.z)<(o.r!==undefined&&o.r<=.25?crown:t.st.r+.3))||KEEP_CLEAR.some(([x,z,r])=>Math.hypot(t.x-x,t.z-z)<r)){ t.dead=true; if(t.item){ t.item.off=true; const j=STATIC.indexOf(t.st); } const i=STATIC.indexOf(t.st); if(i>=0) STATIC.splice(i,1); } } }
 resetGrid();   /* 樹整理完再重算找路格子 */
 addEventListener('pagehide',savePos); document.addEventListener('visibilitychange',()=>{ if(document.hidden) savePos(); });
