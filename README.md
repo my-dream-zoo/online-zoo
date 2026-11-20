@@ -1,8 +1,8 @@
-# 壽山動物園線上動物園
+# 我的夢想動物園・線上動物園
 
-開發中的壽山動物園線上動物園。最終預計放在 `https://shoushanzoo-memorial.github.io/` 根網址，緬懷地圖搬到 `/memorial/`。
+動物園粉絲自製、非官方的線上動物園（開發中）。網址：https://my-dream-zoo.github.io/online-zoo/ 。最終預計放在 `https://my-dream-zoo.github.io/` 根網址，緬懷地圖搬到 `/memorial/`。
 
-- `index.html`：適合手機瀏覽的施工頁，讀取已核准展區。
+- `index.html`、`chibi.js`：測試小島（3D 小島試玩版，從本機「測試小島」產生，素材全部程式畫）。
 - `src/`：預留網站程式。
 - `assets/`：預留網站素材。
 - `data/`：匯出的 JSON；目前全部是明顯假資料，正式上線前須重新匯出。
