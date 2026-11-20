@@ -105,7 +105,7 @@
   #toast{position:absolute;z-index:30;left:50%;top:14px;transform:translateX(-50%);background:#5a3c1c;color:#fff;padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:60%;text-align:center}
   #toast.show{opacity:1}
   #toast.head{font-size:12px;padding:5px 11px;max-width:min(82%,340px);line-height:1.35;transform:translate(-50%,-100%)}   /* 跟著人物：在頭上方 */
-  #toast.head::after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:inherit}
+  /* 頭上提示框不要小尖角（2026-11-17 清單第 24 項） */
   #toast.head{border-top-color:#5a3c1c} #toast.head.warn{border-top-color:#c0392b}
   #placeTag{font-size:11px!important;padding:2px 9px!important}
   #toast.warn{background:#c0392b}
@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120203717';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120210101';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1094,12 +1094,17 @@ const CANOPY=new THREE.Group(); scene.add(CANOPY); FADERS.push(CANOPY);
   box(2.6,.12,.8,std('#e2896a'),0,1.5,1.15,vc);
   const s=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.34),new THREE.MeshBasicMaterial({map:signTex('遊客中心','#fffaf0','#4f7d44',300,80)})); s.position.set(0,1.32,.95); vc.add(s); }
 const INFO_SIGN=[6.0,5.1];   /* 原位置（不在大門口，不動） */
-{ const [bx,bz]=INFO_SIGN,   /* 讓出往狐獴島的路口 */ by=Math.atan2(-bx,-bz); const ib=new THREE.Group(); ib.position.set(bx,0,bz); ib.rotation.y=by; ib.scale.setScalar(1.3); scene.add(ib); FADERS.push(ib); STATIC.push({x:bx,z:bz,hw:.9,hd:.2,yaw:by});
+let INFO_BOARD=null; { const [bx,bz]=INFO_SIGN,   /* 讓出往狐獴島的路口 */ by=Math.atan2(-bx,-bz); const ib=new THREE.Group(); ib.position.set(bx,0,bz); ib.rotation.y=by; ib.scale.setScalar(1.3); scene.add(ib); INFO_BOARD=ib; FADERS.push(ib); STATIC.push({x:bx,z:bz,hw:.9,hd:.2,yaw:by});
   [-1,1].forEach(s=>{ const p=new THREE.Mesh(rboxGeo(.12,1.5,.12,.04),WALL_MAT); p.position.set(s*.6,.75,-.14); p.castShadow=true; ib.add(p); }); box(1.4,1.0,.08,WALL_MAT,0,1.05,-.03,ib);   /* 柱子放在看板後面，不會穿過字面 */
-  const c=document.createElement('canvas'); c.width=512; c.height=360; const g=c.getContext('2d'); g.fillStyle='#fffaf0'; g.fillRect(0,0,512,360); g.strokeStyle='#5a3c1c'; g.lineWidth=10; g.strokeRect(5,5,502,350);
-  g.fillStyle='#5a3c1c'; g.font='bold 44px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.fillText('園區資訊',256,70); g.font='28px "Noto Sans TC",sans-serif'; g.fillStyle='#7a6f60';
-  ['開放時間、票價、交通資訊','請參考壽山動物園','官方臉書、IG、官方網站'].forEach((t,i)=>g.fillText(t,256,140+i*52));
-  const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace; const b=new THREE.Mesh(new THREE.PlaneGeometry(1.25,.88),new THREE.MeshStandardMaterial({map:tx})); b.position.set(0,1.05,.02); ib.add(b); }
+  /* 牌面直接寫園區資訊（內容照壽山動物園官網「遊園資訊」，2026-11-20 抓取），最下面小字註明來源；點看板會走過去打開完整資訊 */
+  const c=document.createElement('canvas'); c.width=852; c.height=600; const g=c.getContext('2d'); g.fillStyle='#fffaf0'; g.fillRect(0,0,852,600); g.strokeStyle='#5a3c1c'; g.lineWidth=12; g.strokeRect(6,6,840,588);
+  g.textAlign='center'; g.fillStyle='#5a3c1c'; g.font='900 64px "Noto Sans TC",sans-serif'; g.fillText('園區資訊',426,92); g.fillStyle='#e0b878'; g.fillRect(300,116,252,6);
+  const row=(y,tag,txt,sub)=>{ g.textAlign='left'; g.fillStyle='#4f7d44'; g.beginPath(); g.roundRect(56,y-36,130,50,14); g.fill(); g.fillStyle='#ffffff'; g.font='bold 30px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.fillText(tag,121,y); g.textAlign='left'; g.fillStyle='#3d2c1a'; g.font='bold 36px "Noto Sans TC",sans-serif'; g.fillText(txt,208,y); if(sub){ g.fillStyle='#7a6a52'; g.font='26px "Noto Sans TC",sans-serif'; g.fillText(sub,208,y+40); } };
+  row(200,'開放','週二至週日 09:00–17:00','最後入園 16:30・週一、除夕休園'); row(318,'票價','全票 40 元・半票 20 元','未滿 6 歲、65 歲以上等免票（需證件）'); row(436,'購票','免預約，現場或線上購票','ibon・KKday・KLOOK');
+  g.textAlign='center'; g.fillStyle='#9a8f80'; g.font='22px "Noto Sans TC",sans-serif'; g.fillText('點看板看更多（交通、參觀須知）・參考自壽山動物園官方網站',426,560);
+
+
+  const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=4; const b=new THREE.Mesh(new THREE.PlaneGeometry(1.32,.93),new THREE.MeshStandardMaterial({map:tx})); b.position.set(0,1.05,.02); ib.add(b); }
 // 每個區域的入口區牌（主題樂園式）：圓角造型招牌＋上方雲朵、粗體字貼紙趴在招牌上、柱腳有花草
 // 每個橋頭放「對面那一區」的區牌，正面朝這一區裡面（站在這邊就看到要去的區域入口）；背面也寫區名（雙面，2026-11-15 作者）
 const TEXLOAD=new THREE.TextureLoader(), TEXC={};
@@ -1401,7 +1406,11 @@ function makeLamp(parent,x,z,sc=1){ const g=new THREE.Group(); g.position.set(x,
   const cap=new THREE.Mesh(new THREE.SphereGeometry(.24,20,10,0,Math.PI*2,0,Math.PI/2),capM); cap.scale.y=.62; cap.position.y=1.7; cap.castShadow=true; g.add(cap);
   const knob=new THREE.Mesh(new THREE.SphereGeometry(.055,10,8),capM); knob.position.y=1.86; g.add(knob); return g; }
 const LAMP_SC=1.3;
-const placeLamp=trackE('lamp',(x,z,spot)=>{ const g=makeLamp(scene,x,z,LAMP_SC); STATIC.push({x,z,r:.2}); FADERS.push(g); CLIMB.push({x,z,top:1.9*LAMP_SC,r:.24,kind:'lamp'}); });   /* lampSpots 留原本的位置：垃圾桶、販賣機是照原本路燈的位置擺，編號才不會因為搬路燈而改變 */
+/* 路燈、垃圾桶一定要在陸地上：掉到水上就往最近那座島的中心挪，直到四周都是陸地（2026-11-17 清單第 23 項） */
+function onLand(x,z,m=.45){ const land=(px,pz)=>!!regionAt(px,pz)&&[[m,0],[-m,0],[0,m],[0,-m]].every(([a,b])=>!!regionAt(px+a,pz+b)); if(land(x,z)) return [x,z];
+  let best=null, bd=1e9; for(const I of Object.values(ISLANDS)){ const d=Math.hypot(x-I.x,z-I.z); if(d<bd){ bd=d; best=I; } } if(!best) return [x,z]; const ux=(best.x-x)/(bd||1), uz=(best.z-z)/(bd||1);
+  for(let s=.1;s<=4;s+=.1){ const px=x+ux*s, pz=z+uz*s; if(land(px,pz)){ const q=Math.min(s+.4,4); return [x+ux*q,z+uz*q]; } }   /* 找到陸地後再往內 0.4 公尺，不要剛好壓在岸邊 */ return [x,z]; }
+const placeLamp=trackE('lamp',(x,z,spot)=>{ [x,z]=onLand(x,z,0); if(spot){ spot[0]=x; spot[1]=z; } const g=makeLamp(scene,x,z,LAMP_SC); STATIC.push({x,z,r:.2}); FADERS.push(g); CLIMB.push({x,z,top:1.9*LAMP_SC,r:.24,kind:'lamp'}); });   /* lampSpots 留原本的位置：垃圾桶、販賣機是照原本路燈的位置擺，編號才不會因為搬路燈而改變 */
 lampSpots.forEach(sp=>placeLamp(sp[0],sp[1],sp));
 // 飲料販賣機：入口廣場最外圈、靠路燈旁邊（左右各一台），走過去就能買飲料
 const VENDS=[];
@@ -1457,8 +1466,11 @@ const inPool=(x,z)=>Math.abs(x-POOL.x)<POOL.hw&&Math.abs(z-POOL.z)<POOL.hd;
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.3),new THREE.MeshStandardMaterial({map:signTex('戲水池','#ffffff','#2f6f8f',300,80)})); sign.position.set(gx-1.9,.9,gz+PD/2+.5); sign.rotation.y=.3; scene.add(sign);
   const sp=new THREE.Mesh(rboxGeo(.08,.75,.08,.03),STEEL); sp.position.set(gx-1.9,.37,gz+PD/2+.48); scene.add(sp); STATIC.push({x:gx-1.9,z:gz+PD/2+.48,r:.12});
   // 噴泉水柱（參考壽山動物園親水廣場：地上噴泉＋像煙囪的水霧）
-  const jetG=new THREE.CylinderGeometry(.035,.06,1,10); jetG.translate(0,.5,0); const jetM=new THREE.MeshStandardMaterial({color:'#e4f6fb',transparent:true,opacity:.6,roughness:.1,emissive:'#bfe6f0',emissiveIntensity:.25,depthWrite:false});
-  [[-2.1,-1.2],[-1.1,1.1],[.1,-1.35],[1.2,1.2],[2.3,-.9],[-.4,.3],[.9,-.1]].forEach(([x,z],i)=>{ const j=new THREE.Mesh(jetG,jetM); j.position.set(gx+x,.09,gz+z); scene.add(j); JETS.push({m:j,ph:i*1.3}); });
+  const jetG=new THREE.CylinderGeometry(.035,.06,1,10); jetG.translate(0,.5,0);
+  /* 水柱頂端的水花：像噴泉圖示那樣往外散開、往下彎（2026-11-17 清單第 21 項） */
+  const crownArc=new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,-.02,0),new THREE.Vector3(.13,.16,0),new THREE.Vector3(.27,-.16,0)),10,.014,5), crownDrop=new THREE.SphereGeometry(.028,8,6), crownM=new THREE.MeshStandardMaterial({color:'#eefaff',transparent:true,opacity:.75,roughness:.1,emissive:'#bfe6f0',emissiveIntensity:.35,depthWrite:false});
+  const crownG={ make(){ const g=new THREE.Group(); for(let k=0;k<8;k++){ const a=new THREE.Mesh(crownArc,crownM); a.rotation.y=k/8*Math.PI*2; g.add(a); const d=new THREE.Mesh(crownDrop,crownM); d.position.set(Math.cos(k/8*Math.PI*2)*.29,-.2,-Math.sin(k/8*Math.PI*2)*.29); g.add(d); } return g; } };   /* 8 道細細的水往外散開、往下彎，尾端一顆水珠 */ const jetM=new THREE.MeshStandardMaterial({color:'#e4f6fb',transparent:true,opacity:.6,roughness:.1,emissive:'#bfe6f0',emissiveIntensity:.25,depthWrite:false});
+  [[-2.1,-1.2],[-1.1,1.1],[.1,-1.35],[1.2,1.2],[2.3,-.9],[-.4,.3],[.9,-.1]].forEach(([x,z],i)=>{ const j=new THREE.Mesh(jetG,jetM); j.position.set(gx+x,.09,gz+z); scene.add(j); const cr=crownG.make(); cr.position.set(gx+x,1,gz+z); cr.rotation.y=i; scene.add(cr); JETS.push({m:j,cr,ph:i*1.3}); });
   const mistTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'), gr=g.createRadialGradient(32,32,2,32,32,32); gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64); const t=new THREE.CanvasTexture(c); return t; })();
   [[-2.45,.75],[2.5,.85]].forEach(([x,z],ci)=>{ const ch=new THREE.Mesh(new THREE.CylinderGeometry(.17,.2,1.5,16),SILVER); ch.position.set(gx+x,.75,gz+z); ch.castShadow=true; scene.add(ch); STATIC.push({x:gx+x,z:gz+z,r:.25});
     for(let k=0;k<4;k++){ const sp2=new THREE.Mesh(new THREE.IcosahedronGeometry(.28,1),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,depthWrite:false})); sp2.position.set(gx+x,1.5,gz+z); scene.add(sp2); MIST.push({s:sp2,x:gx+x,z:gz+z,ph:k/4+ci*.13}); } });
@@ -1599,7 +1611,7 @@ function camToward(yaw,side=.3){ const a=yaw+Math.PI+side, d=camera.aspect<1?8.5
 function updateWorld(dt){ if(!DAY.paused){ DAY.t=(DAY.t+dt/DAY.len)%1; } applyDay(); fadeGate(dt); updateLabels();
   const T=performance.now()/1000; waterU.uTime.value=T; CLOUDS.forEach(c=>{ c.ang+=c.sp*dt; c.m.position.x=SEA_C.x+Math.cos(c.ang)*c.rad; c.m.position.z=SEA_C.y+Math.sin(c.ang)*c.rad; c.m.lookAt(SEA_C.x,c.m.position.y*.6,SEA_C.y); });
   POOLWATER.forEach((w,i)=>{ w.material.emissiveIntensity=.1+Math.sin(T*1.6+i)*.05; });
-  JETS.forEach(j=>{ j.m.scale.y=.35+.75*(.5+.5*Math.sin(T*2.3+j.ph)); }); MIST.forEach(m=>{ const q=(T*.32+m.ph)%1; m.s.position.set(m.x+Math.sin(T+m.ph*6)*.12*q,1.55+q*1.5,m.z); m.s.scale.setScalar(.35+q*1.3); m.s.material.opacity=.32*Math.sin(q*Math.PI); });
+  JETS.forEach(j=>{ j.m.scale.y=.35+.75*(.5+.5*Math.sin(T*2.3+j.ph)); if(j.cr){ j.cr.position.y=.09+j.m.scale.y; const s=.8+.35*(.5+.5*Math.sin(T*2.3+j.ph)); j.cr.scale.set(s,.9+.2*Math.sin(T*6+j.ph),s); } }); MIST.forEach(m=>{ const q=(T*.32+m.ph)%1; m.s.position.set(m.x+Math.sin(T+m.ph*6)*.12*q,1.55+q*1.5,m.z); m.s.scale.setScalar(.35+q*1.3); m.s.material.opacity=.32*Math.sin(q*Math.PI); });
   if(person){ const P=person.position; const cdx=camera.position.x-P.x, cdz=camera.position.z-P.z, cl=Math.hypot(cdx,cdz)||1; pGlow.position.set(P.x+cdx/cl*.7,P.y+1.35,P.z+cdz/cl*.7);   /* 光放在人物前面、胸口高度，帽子才不會過曝 */ pHalo.position.set(P.x,.02,P.z); } HANG.forEach(h=>{ h.piv.rotation.z=Math.sin(T*.9+h.phase)*.06; h.piv.rotation.x=Math.sin(T*.7+h.phase)*.04; });
   updateSplash(dt); updateVendor(dt); updateSweepers(dt); updateKeepers(dt); updateButterflies(dt);
   { const want=inIndoor()?0:1; roofF+=(want-roofF)*Math.min(1,dt*6); const gf=PLACE.室內用餐區?.userData.fade??1;   /* 在森林小棧裡面：屋頂變透明，看得到裡面 */
@@ -1652,7 +1664,7 @@ function setupUI2(){
   $('emoteBtn').onclick=()=>{ const o=!em.classList.contains('open'); closeMenus(); if(o){ emoteList(); em.classList.add('open'); $('emoteBtn').classList.add('on'); } };
   canvas.addEventListener('pointerdown',closeMenus);
   // 浮動招牌
-  addLabel('遊客中心',()=>new THREE.Vector3(-26.7,5.9,4.0),{fg:'#3f7a3a'}); addLabel('園區資訊',()=>new THREE.Vector3(INFO_SIGN[0],2.75,INFO_SIGN[1]),{fg:'#5a3c1c',h:.45});   /* 浮字對齊看板正上方 */
+  addLabel('遊客中心',()=>new THREE.Vector3(-26.7,5.9,4.0),{fg:'#3f7a3a'});   /* 園區資訊不用浮字，牌面上就有標題 */
   addLabel('飲料・零食',()=>PLACE.小賣店&&PLACE.小賣店.position.clone().setY(4.2),{fg:'#c0392b'}); addLabel('森林小棧・室內用餐',()=>PLACE.室內用餐區&&PLACE.室內用餐區.position.clone().setY(4.3),{fg:'#3f7a3a'});
   addLabel('戲水池',()=>new THREE.Vector3(0,4.3,-3.4),{fg:'#2f6f8f'}); /* 垃圾桶上方的浮字拿掉（2026-11-20 作者），桶身已有標籤 */ { const SB=BRIDGES.find(B=>B.b==='保育員工作區'); if(SB) addLabel('保育員專屬區域（敬請期待）',()=>new THREE.Vector3((SB.s.x+SB.e.x)/2,3.3,(SB.s.z+SB.e.z)/2),{fg:'#3e5a3a',h:.4}); } /* 觀景台拱門上已有「往緬懷地圖」招牌，上方浮字拿掉（2026-11-17 作者 清單第 18 項） */   Object.entries(STAGES).forEach(([k,st])=>addLabel(k==='狐獴島'?'狐獴':'孟加拉虎',()=>st.center.clone().setY(5.3),{fg:'#8c4a2b',h:.75}));
   // 情境按鈕：走到小賣店前就能買、拿著食物就能吃喝收起來、靠近垃圾桶就能丟、靠近長椅就能坐（常用的不收進選單）
@@ -1666,6 +1678,7 @@ function setupUI2(){
     if(h!=='none'&&h!=='balloon'&&look.bag!=='none') L.push(['收進背包','bag',()=>$('bStash').click()]);
     if(nearestTrash()[1]<2.4&&(h!=='none'||trashInBag().length)) L.push(['丟垃圾','trash',()=>$('bTrash').click()]);
     for(const [k,st] of Object.entries(STAGES)) if(st.guide&&Math.hypot(P.x-st.guide.x,P.z-st.guide.z)<2.3) L.push(['看解說牌','book',()=>openAreaRead(k)]);
+    if(Math.hypot(P.x-INFO_SIGN[0],P.z-INFO_SIGN[1])<2.4) L.push(['看園區資訊','book',openInfo]);
     const nearPool=Math.abs(P.x-POOL.x)<POOL.hw+2.2&&Math.abs(P.z-POOL.z)<POOL.hd+2.2;
     if(!swimOn&&nearPool) L.push(['換泳衣','swim',wearSwim]); if(swimOn&&!inPool(P.x,P.z)) L.push(['換回衣服','shirt',wearBack]);
     if(seatMode==='chair'&&curSeat&&curSeat.tv) L.push(['觀看直播','tv',()=>openLive(curSeat.tv)]);
@@ -1726,7 +1739,7 @@ function addTrash(x,z,yaw=0){ const L=besideLamp(x,z); let ok=false;
     for(const sd of [1,-1]){ const tx=inFore?(Math.sign(L[0])||1)*sd:-oz/ol*sd, tz=inFore?0:ox/ol*sd, x1=L[0]+tx*.62, z1=L[1]+tz*.62; if(trashClear(x1,z1)){ USED_LAMP.add(L.join(',')); x=x1; z=z1; if(!inFore) yaw=Math.atan2(-ox/ol,-oz/ol); ok=true; break; } } }
   if(!ok&&z<FORE.z0-.5){ const I=ISLANDS[islandOf(x,z)]||ISLANDS.入口廣場, a0=angOf(I,x,z);   /* 放到島的邊緣，橋頭附近就往旁邊挪 */
     for(let k=0;k<60;k++){ const a=a0+(k%2?1:-1)*Math.ceil(k/2)*.1, r=islandR(I,a)-.95, xx=I.x+Math.sin(a)*r, zz=I.z+Math.cos(a)*r; if(trashClear(xx,zz)){ x=xx; z=zz; yaw=a+Math.PI; break; } } }
-  const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=yaw; const lid=buildTrash(g); STATIC.push({x,z,r:.35}); TRASH_EXTRA.push({x,z,lid,g}); }
+  [x,z]=onLand(x,z,0); const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=yaw; const lid=buildTrash(g); STATIC.push({x,z,r:.35}); TRASH_EXTRA.push({x,z,lid,g}); }
 addTrash=trackE('trash',addTrash,()=>[TRASH_EXTRA[TRASH_EXTRA.length-1]]);
 addTrash(-5.2,3.0,Math.PI/2); addTrash(2.7,17.0,Math.PI);
 // 休憩站：每座島一個（遮陽傘桌椅＋飲水機＋路燈旁垃圾桶＋小花台），參考主題樂園、小公園給遊客的休憩服務空間
@@ -1736,9 +1749,12 @@ function makeFountain(x,z,yaw){ const g=new THREE.Group(); g.position.set(x,0,z)
   const lab=new THREE.Mesh(new THREE.PlaneGeometry(.34,.12),new THREE.MeshBasicMaterial({map:signTex('飲水機','#fffaf0','#3a6f9a',160,56)})); lab.position.set(0,.6,.205); g.add(lab); }
 function makeRestStop(x,z,yaw,col){ const fx=Math.sin(yaw), fz=Math.cos(yaw), rx=Math.cos(yaw), rz=-Math.sin(yaw);
   makeUmbrella(x,z,col||'#f2c14e');   // 遮陽傘桌椅（可以坐）
-  const lx=x+rx*2.6, lz=z+rz*2.6; const sp=[lx,lz]; lampSpots.push(sp); placeLamp(lx,lz,sp);
+  /* 路燈、垃圾桶、販賣機都要在島上：原本那一側掉到水上就換邊，再不行就往傘靠近一點（2026-11-17 清單第 23 項） */
+  const onI=(px,pz)=>!!regionAt(px,pz)&&!!regionAt(px+fx*.62,pz+fz*.62)&&!!regionAt(px+rx*.5,pz+rz*.5)&&!!regionAt(px-rx*.5,pz-rz*.5);
+  let sd=1, off=2.6; found: for(const o of [2.6,2.2,1.8]) for(const s of [1,-1]) if(onI(x+rx*o*s,z+rz*o*s)&&onI(x-rx*o*s,z-rz*o*s)){ sd=s; off=o; break found; }
+  const lx=x+rx*off*sd, lz=z+rz*off*sd; const sp=[lx,lz]; lampSpots.push(sp); placeLamp(lx,lz,sp);
   addTrash(lx+fx*.62,lz+fz*.62,yaw);   // 路燈旁垃圾桶
-  { const vx=x-rx*2.6, vz=z-rz*2.6; makeVend(vx,vz,yaw); KEEP_CLEAR.push([vx+fx*1.1,vz+fz*1.1,.9]); }   // 飲料販賣機（每區一台，前面留空）
+  { const vx=x-rx*off*sd, vz=z-rz*off*sd; makeVend(vx,vz,yaw); KEEP_CLEAR.push([vx+fx*1.1,vz+fz*1.1,.9]); }   // 飲料販賣機（每區一台，前面留空）
   REST_STOPS.push({x,z}); KEEP_CLEAR.push([x,z,2.2]); }   /* 休憩站周圍不留樹（場景蓋完會清掉擋到的樹） */
 const REST_STOPS=[];
 // 路口：走道接上島的地方旁邊一串小石板（至少 3 塊）通到草地（2026-11-17 作者）
@@ -2049,13 +2065,14 @@ let toastT=0; const toastEl=document.getElementById('toast'), toastQ=[];
 function toast(msg,warn=false){ toastEl.textContent=msg; toastEl.className='show'+(warn?' warn':''); toastT=3.2+msg.length*.04; headToast(); }
 // 提示訊息跟著人物，顯示在頭上方（2026-11-17 作者：文字框會遮到人物）
 let headH=0; const headV=new THREE.Vector3();
-function headToast(){ const st=toastEl.style; const main=document.querySelector('main');
-  if(typeof person==='undefined'||!person||!person.visible||main.classList.contains('dressing')||main.classList.contains('chatting')){ toastEl.classList.remove('head'); st.left=st.top=st.bottom=''; return; }
+var headXY={x:null,y:null}; function headToast(){ const st=toastEl.style; const main=document.querySelector('main');
+  if(typeof person==='undefined'||!person||!person.visible||main.classList.contains('dressing')||main.classList.contains('chatting')){ toastEl.classList.remove('head'); headXY.x=null; st.left=st.top=st.bottom=''; return; }
   if(!headH){ const b=new THREE.Box3().setFromObject(person); headH=Math.max(1.2,b.max.y-person.position.y); }
-  headV.set(person.position.x,person.position.y+headH+.15,person.position.z).project(camera); if(headV.z>1) return;
+  headV.set(person.position.x,groundY(person.position.x,person.position.z)+headH+.15,person.position.z).project(camera); if(headV.z>1) return;   /* 用地面高度，不跟著走路上下晃 */
   const r=canvas.getBoundingClientRect(), pr=(toastEl.offsetParent||canvas.parentElement).getBoundingClientRect();
-  const x=r.left-pr.left+(headV.x+1)/2*r.width, y=r.top-pr.top+(1-headV.y)/2*r.height;
-  toastEl.classList.add('head'); st.left=Math.max(90,Math.min(r.width-90,x))+'px'; st.top=Math.max(70,y)+'px'; st.bottom='auto'; }
+  const x=r.left-pr.left+(headV.x+1)/2*r.width, y=r.top-pr.top+(1-headV.y)/2*r.height, tx=Math.max(90,Math.min(r.width-90,x)), ty=Math.max(70,y);
+  if(!toastEl.classList.contains('head')||headXY.x===null){ headXY.x=tx; headXY.y=ty; } else { headXY.x+=(tx-headXY.x)*.12; headXY.y+=(ty-headXY.y)*.12; }   /* 位置平滑跟隨，不跟著每一步抖 */
+  toastEl.classList.add('head'); st.left=Math.round(headXY.x)+'px'; st.top=Math.round(headXY.y)+'px'; st.bottom='auto'; }
 // 排隊顯示（集章、成就跳出來時不要蓋掉原本的提示）
 function toastLater(msg){ toastQ.push(msg); }
 
@@ -2203,6 +2220,20 @@ function openAreaRead(k){ const R=AREA_READS[k]; if(!R) return; const first=!don
   document.getElementById('mOk').onclick=()=>{ closeModal(); if(!first) return; done.area.add(k); inv.money+=CFG.讀科普獎金; addScore(CFG.讀科普分數); drawHud(); toast(`看完${R.t}，+${CFG.讀科普獎金} 元、+${CFG.讀科普分數} 分`);
     quizNews(before); }; }
 const modal=document.getElementById('modal'), mbox=document.getElementById('mbox');
+/* 園區資訊（內容照壽山動物園官網「遊園資訊」「旅客須知」，2026-11-20 抓取；改內容就改這裡） */
+const INFO={t:'園區資訊',sub:'開放時間、票價、交通、參觀須知',color:'#4f7d44',
+  secs:[['🕘','開放時間','週二至週日 09:00–17:00，最後入園時間 16:30。<br>星期一及除夕休園；星期一遇國定假日照常開園。'],
+    ['🎟️','票價','全票 40 元（一般成人）<br>半票 20 元（6 歲以上未滿 18 歲）<br>團體票：20 人以上打八折'],
+    ['🆓','免票（需帶證件查驗）','未滿 6 歲兒童、高雄市國小（含）以下學童、年滿 65 歲長輩、身心障礙者及必要陪伴者一人等。免票不用預約，當天帶證件到人工閘門入園。'],
+    ['🛒','怎麼買票','免預約。可在人工售票亭、自動售票機買票，或在 ibon、KKday、KLOOK 線上預購。<br>可用一卡通、悠遊卡、信用卡、LINE Pay、愛金卡、現金。'],
+    ['🚌','交通','地址：高雄市鼓山區萬壽路 350 號<br>56 號壽山動物園專線公車（火車站 → 捷運鹽埕埔站 → 輕軌文武聖殿站 → 動物園），週一停駛。<br>開車：停車場離入口約 300 公尺。'],
+    ['🐒','參觀須知','禁止餵食動物、禁止攜帶寵物、全園禁菸。<br>壽山是野生獼猴的家：食物不外露、不要邊走邊吃，建議在室內用餐。<br>拍動物不要用閃光燈。']],
+  foot:'參考資料：壽山動物園官方網站（zoo.kcg.gov.tw），實際以官網公告為準'};
+function openInfo(){ const R=INFO; mbox.innerHTML=`<div class="rd" style="--c:${R.color}"><div class="rd-head"><div><h4>${R.t}</h4><small>${R.sub}</small></div></div>
+  <div class="rd-body"><div class="rd-secs">${R.secs.map(([ic,h,t])=>`<div class="rd-sec"><span class="rd-ic">${ic}</span><div><b>${h}</b><p>${t}</p></div></div>`).join('')}</div>
+  <p style="font-size:12px;color:#8a7a62;margin-top:10px"><a href="https://zoo.kcg.gov.tw/zh-tw/tour-information/" target="_blank" rel="noopener" style="color:inherit">${R.foot}</a></p></div>
+  <div class="rd-foot"><button id="mOk">關閉</button></div></div>`; modal.classList.add('show'); mbox.classList.add('wide'); document.getElementById('mOk').onclick=closeModal; }
+function goInfo(){ const [bx,bz]=INFO_SIGN, L=Math.hypot(bx,bz)||1, sx=bx-bx/L*1.5, sz=bz-bz/L*1.5; const P=person&&person.position; if(P&&Math.hypot(P.x-bx,P.z-bz)<2.4) return openInfo(); walkTo(sx,sz,openInfo); }
 const NOTE='<div class="note">參考資料：壽山動物園官方臉書、IG、官方網站</div>';
 function closeModal(){ mbox.className='box'; mbox.style.removeProperty('--bag'); modal.classList.remove('show'); mbox.classList.remove('wide'); NPC_LIST.forEach(o=>{ o.talking=false; o.waved=false; }); }
 // NPC 對話：簡單動物科普（內容都來自已審過的解說牌）；答不出來就記下來，之後回覆
@@ -2234,6 +2265,17 @@ function npcAnswer(q,e){ const t=q.replace(/\s/g,''), topic=['meerkat','tiger','
 function sendQuestion(e,q){ try{ const L=JSON.parse(localStorage.getItem('zooQuestions')||'[]'); L.push({who:e.title,q,at:new Date().toISOString()}); localStorage.setItem('zooQuestions',JSON.stringify(L.slice(-50))); }catch(_){}
   if(!SAVE_URL) return; try{ fetch(SAVE_URL,{method:'POST',body:JSON.stringify({action:'question',who:e.title,area:e.area||'',q})}).catch(()=>{}); }catch(_){} }
 // ===== 對話：像手機訊息。先走到 NPC 面前 → 鏡頭轉成兩人面對面（畫面上半部）→ 下半部打開訊息視窗 =====
+/* 可以聊天的人：遊客面對他、走近時，頭上出現對話框，三個點輪流閃（2026-11-17 清單第 25 項） */
+const TALK_TEX=[0,1,2].map(k=>{ const c=document.createElement('canvas'); c.width=160; c.height=120; const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.strokeStyle='#5a3c1c'; g.lineWidth=7; g.beginPath(); g.roundRect(8,8,144,78,32); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(66,84); g.lineTo(80,108); g.lineTo(94,84); g.closePath(); g.fill(); g.stroke(); g.fillStyle='#ffffff'; g.fillRect(64,78,32,10);
+  [48,80,112].forEach((x,i)=>{ g.fillStyle=i===k?'#5a3c1c':'#c9b9a0'; g.beginPath(); g.arc(x,47,i===k?11:9,0,7); g.fill(); });
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; });
+let talkFrame=0;
+setInterval(()=>{ talkFrame=(talkFrame+1)%3; if(typeof person==='undefined'||!person) return; const P=person.position, fy=person.rotation.y;
+  for(const e of NPC_LIST){ if(!e.n) continue; if(!e.talkS){ const m=new THREE.SpriteMaterial({map:TALK_TEX[0],depthTest:false,transparent:true}); e.talkS=new THREE.Sprite(m); e.talkS.raycast=()=>{}; e.talkS.renderOrder=20; const b=new THREE.Box3().setFromObject(e.n); const sc=e.n.scale.y||1; const low=e.role==='vendor';   /* 店員站在遮陽棚下：對話框放低、小一點，不要蓋到招牌 */ e.talkS.position.set(0,(b.max.y-e.n.position.y)/sc+(low?.08:.5)/sc,0); e.talkS.scale.set((low?.5:.72)/sc,(low?.375:.54)/sc,1); e.talkS.visible=false; e.n.add(e.talkS); }
+    const N=e.n.position, dx=N.x-P.x, dz=N.z-P.z, d=Math.hypot(dx,dz), face=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-fy),Math.cos(Math.atan2(dx,dz)-fy)));
+    const on=!chatNPC&&e.n.visible&&d<3.2&&face<1.1; e.talkS.visible=on; if(on) e.talkS.material.map=TALK_TEX[talkFrame]; } },320);
 let chatNPC=null, chatCamSave=null;
 let dressing=false, dressCamSave=null;
 function dressCam(){ if(!person) return; const P=person.position, phone=matchMedia('(max-width:760px)').matches, D=phone?5.4:4.2;
@@ -2375,6 +2417,7 @@ function openFoot(i=0){ const T=FOOT_TRAILS[i]||FOOT_TRAILS[0]; if(!T) return; c
     v.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(v,camera); if(chatNPC||(editing&&editHit)) return;
     const nh=ray.intersectObjects(NPC_LIST.map(o=>o.n),true)[0]; if(nh){ let o=nh.object; while(o&&!NPC_LIST.some(q=>q.n===o)) o=o.parent; const e=NPC_LIST.find(q=>q.n===o); if(e) return talkTo(e); }
     const fh=ray.intersectObjects(footprints)[0]; if(fh) return openFoot(fh.object.userData.trail);
+    if(INFO_BOARD&&ray.intersectObjects([INFO_BOARD],true)[0]) return goInfo();   /* 點園區資訊看板：走過去再打開 */
     const tvHit=ray.intersectObjects(TV_SCREENS,false)[0]; if(tvHit) return EMBED_OK?openYouTube(tvHit.object.userData.live):openLive(tvHit.object.userData.live);
     const hit=ray.intersectObjects(WALK,false)[0]; if(hit){ const fi=footAt(hit.point.x,hit.point.z); if(fi!==null) return openFoot(fi); }
     if(hit&&regionAt(hit.point.x,hit.point.z)){ hideTapHint(); walkTo(hit.point.x,hit.point.z); } }); }
