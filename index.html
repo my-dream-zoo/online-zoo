@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120220020';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120220259';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1284,10 +1284,11 @@ function makeArch(x,z,yaw,front,back){ const g=new THREE.Group(); g.position.set
     for(let i=0;i<n;i++){ const k=i*2; idx.push(k,k+1,k+2,k+1,k+3,k+2); }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals();
     const face=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:arcSignTex(name,col),roughness:.7,side:THREE.DoubleSide})); face.position.set(0,CY,side*.135); if(side<0) face.rotation.y=Math.PI; g.add(face); });
-  [[-2.62,1.55,.32],[-2.35,2.1,.26],[2.62,1.5,.3],[2.3,2.05,.24]].forEach(([bx,by,br])=>{ const b=new THREE.Mesh(new THREE.IcosahedronGeometry(br,1),bushM); b.position.set(bx,by,0); b.scale.z=.7; b.castShadow=true; g.add(b); });   /* 招牌兩端的樹叢 */
+  { const bm=new THREE.MeshStandardMaterial({color:'#79b85c',roughness:.8,map:(()=>{ const tx=surfTex('foliage').clone(); tx.needsUpdate=true; tx.repeat.set(1.5,1.5); return tx; })()});   /* 招牌兩端的樹叢：放在招牌尾端下面、草坡外側，不插進招牌（2026-11-20 作者：穿圖） */
+    [[.12,2.43,.32],[.04,2.86,.24]].forEach(([an,r,br])=>[-1,1].forEach(sd=>{ const b=new THREE.Mesh(new THREE.SphereGeometry(br,14,10),bm); b.position.set(sd*Math.cos(an)*r,CY+Math.sin(an)*r,0); b.castShadow=true; g.add(b); })); }
   const star=new THREE.Mesh(starGeo(.3,.14,.08),std('#f6c43a')); star.position.set(-1.45,CY+3.0,0); star.rotation.z=.3; g.add(star);
-  { const tr=new THREE.Group(); tr.position.set(1.95,.45,-.05); g.add(tr); const tk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,1.1,8),std('#8a5a3a')); tk.position.y=.55; tk.castShadow=true; tr.add(tk);
-    const cr=new THREE.Mesh(new THREE.IcosahedronGeometry(.5,1),bushM); cr.position.y=1.35; cr.scale.set(1,1.1,.8); cr.castShadow=true; tr.add(cr); }   // 右邊草坡上一棵小樹
+  { const tr=new THREE.Group(); tr.position.set(3.35,0,-.1); g.add(tr);   /* 小樹移到招牌外側，樹冠不碰招牌 */ STATIC.push({x:x+Math.cos(yaw)*3.35-Math.sin(yaw)*.1,z:z-Math.sin(yaw)*3.35-Math.cos(yaw)*.1,r:.2}); const tk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,1.1,8),std('#8a5a3a')); tk.position.y=.55; tk.castShadow=true; tr.add(tk);
+    const cr=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),new THREE.MeshStandardMaterial({color:'#79b85c',roughness:.8,map:(()=>{ const tx=surfTex('foliage').clone(); tx.needsUpdate=true; tx.repeat.set(2,2); return tx; })()})); cr.position.y=1.35; cr.scale.set(1,1.1,.8); cr.castShadow=true; tr.add(cr); }   // 右邊草坡上一棵小樹
 }
 BRIDGES.forEach(B=>{ if(B.b==='保育員工作區') makeStaffGate(B); else makeGate(B); });
 // 還沒開放的島：中間一塊「○○島・即將開放」大看板（粗體字貼紙＋島名），面向中央廣場
