@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120215350';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120220020';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -613,7 +613,8 @@ function tree(x,z,sc=1,pot=true,yellow=0,baseY=0){ const parts=[]; const I0=inst
     inst2('crown'+k,TREE_GEO.crown,TREE_MAT[k],M4(x,y0+1.05*sc,z,RY,sc*(.95+Math.random()*.15),sc*(.88+Math.random()*.15)));
     const nb=1+Math.floor(Math.random()*3); for(let j=0;j<nb;j++){ const a=RY+j*2.2, kk=k2(); inst2('crown'+kk,TREE_GEO.crown,TREE_MAT[kk],M4(x+Math.sin(a)*.32*sc,y0+(1.2+Math.random()*.25)*sc,z+Math.cos(a)*.32*sc,a,sc*(.5+Math.random()*.15))); } }
   CLIMB.push({x,z,top:top+baseY,r:pot?.42*sc:.16,kind:'tree'});
-  const st={x,z,r:Math.max(rad,pot?.36*sc:.16)}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc}); }
+  const canopy=({palm:1.2,treefern:1.0,acacia:1.5,aloe:.45,bamboo:.6,monstera:.65,reeds:.45,conifer:.65,broad:1.05,fruit:1.05,bubble:.75}[kind]||.7)*sc;   /* 樹冠半徑：用來檢查有沒有蓋到走道 */
+  const st={x,z,r:Math.max(rad,pot?.36*sc:.16)}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc,canopy}); }
 // 行道樹（2026-11-17 作者：取代廣場上的盆栽樹）：地上一小塊草地、周圍一圈石緣，細樹幹＋雲朵形樹冠；園方可以搬、轉、複製
 const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.085,1.3,8), crown:new THREE.SphereGeometry(.5,16,12) };   /* 行道樹也改圓滑泡泡樹冠 */
 const ST_MAT={ curb:new THREE.MeshStandardMaterial({color:'#d8cdb8',roughness:.95,flatShading:true}), grass:std('#8cc46a'), tuft:new THREE.MeshStandardMaterial({color:'#5f9e45',roughness:1,flatShading:true}) };
@@ -1580,9 +1581,12 @@ const inPool=(x,z)=>Math.abs(x-POOL.x)<POOL.hw&&Math.abs(z-POOL.z)<POOL.hd;
   // 池邊的長椅（陪小朋友玩水的人可以坐著看）
   makeBench(gx-4.7,gz,Math.PI/2); makeBench(gx+4.7,gz,-Math.PI/2); makeBench(gx-3.3,gz-3.9,0); makeBench(gx+3.3,gz-3.9,0);   /* 讓出往雨林島的路口 */ }
 // 戶外陽傘座位（小賣店旁；在這裡吃東西也會被獼猴盯上）、門口花台（園區內不能騎腳踏車，所以不放單車架）
+/* 遮陽傘雙色相間（2026-11-20 作者）：暖色配米白（黃白、橘白），藍色系配深一點的藍（天藍＋藍） */
+const UMB_T={}; function umbStripe(c){ if(UMB_T[c]) return UMB_T[c]; const n=parseInt(c.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255, c2=b>r?shade(c,.62):'#fffaf0';
+  const cv=document.createElement('canvas'); cv.width=200; cv.height=8; const q=cv.getContext('2d'); for(let i=0;i<10;i++){ q.fillStyle=i%2?c2:c; q.fillRect(i*20,0,20,8); } const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.magFilter=THREE.NearestFilter; return UMB_T[c]=t; }
 function makeUmbrella(x,z,c){ const g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(1.15); scene.add(g); STATIC.push({x,z,r:.9});
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1.9,8),WALL_MAT); pole.position.y=.95; g.add(pole);
-    const top=new THREE.Mesh(new THREE.ConeGeometry(1.0,.38,10,1,true),new THREE.MeshStandardMaterial({color:c,roughness:.8,side:THREE.DoubleSide,flatShading:true})); top.position.y=1.95; top.castShadow=true; g.add(top);
+    const top=new THREE.Mesh(new THREE.ConeGeometry(1.0,.38,10,1,true),new THREE.MeshStandardMaterial({map:umbStripe(c),roughness:.8,side:THREE.DoubleSide,flatShading:true})); top.position.y=1.95;   /* 傘面雙色相間 */ top.castShadow=true; g.add(top);
     const tb=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.06,20),WALL_MAT); tb.position.y=.62; tb.castShadow=true; g.add(tb); const leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.12,.6,10),WALL_MAT); leg.position.y=.3; g.add(leg);
     [0,2.1,4.2].forEach(a=>{ SEATS_FIX.push({x:x+Math.sin(a)*.8,z:z+Math.cos(a)*.8,y:.28,yaw:a+Math.PI,ax:x+Math.sin(a)*1.45,az:z+Math.cos(a)*1.45}); const ch=new THREE.Group(); ch.position.set(Math.sin(a)*.72,0,Math.cos(a)*.72); ch.rotation.y=a+Math.PI; g.add(ch); box(.34,.06,.34,std('#e2896a'),0,.36,0,ch); box(.34,.3,.05,std('#e2896a'),0,.55,-.15,ch); [[-.13,.13],[.13,.13],[-.13,-.13],[.13,-.13]].forEach(([x,z])=>box(.04,.36,.04,WALL_MAT,x,.18,z,ch)); }); }   /* 椅子四支腳 */
 makeUmbrella=trackE('umb',makeUmbrella);
@@ -1880,12 +1884,16 @@ decorEntrances();
 Object.entries(ISLANDS).forEach(([k,I])=>{ if(!I.sect||STAGES[k]||k==='觀景台') return;
   const spots=I.zones?I.zones.map((Z,zi)=>[zi===0?Z.t1-9:Z.t0+11,I.sect.rm-1.8]):I.hut?[[I.sect.am*180/Math.PI+13,22.1]]:[[I.sect.am*180/Math.PI,I.sect.rm]];   /* 有小屋的島：放在小屋另一側；合併的島：每區一個 */
   spots.forEach(([t,r,side])=>{ const q=ringAt(t,r), [x,z]=freeS(q.x,q.z), tr=t*Math.PI/180; makeRestStop(x,z,side?Math.atan2(Math.cos(tr),Math.sin(tr)):Math.atan2(CENTER.x-x,CENTER.z-z),AREA_COLOR[k]||'#f2c14e'); }); });   /* side：轉成順著島的方向擺，不擋中軸 */   // 入口廣場（長椅旁）、入口前廣場（大門外右邊）
+/* 樹不要蓋到遊客要用的地方（2026-11-20 作者）：販賣機正前方、遮陽傘桌椅、座位、垃圾桶、休憩站；販賣機旁邊、後面有樹蔭沒關係 */
+function serviceZones(){ const Z=[]; VENDS.forEach(v=>{ const p=v.g?v.g.position:v, yw=v.g?v.g.rotation.y:v.yaw; Z.push([p.x+Math.sin(yw)*1.0,p.z+Math.cos(yw)*1.0,1.0]); });   /* 用實際位置（擺放模式搬過的也算） */
+  SEATS_FIX.forEach(s=>Z.push([s.ax??s.x,s.az??s.z,.6])); STATIC.forEach(o=>{ if(o.r!==undefined&&o.r>=.85&&o.r<=.95) Z.push([o.x,o.z,1.25]); });   /* 遮陽傘桌椅一整組 */
+  REST_STOPS.forEach(r=>Z.push([r.x,r.z,1.6])); [...(typeof TRASH_EXTRA!=='undefined'?TRASH_EXTRA:[])].forEach(t=>Z.push([t.x,t.z,.7])); return Z; }
 /* 主題植物：休憩站、小屋都蓋好之後，在各島的空地補幾棵（雨林／水邊＝椰子樹、兒童牧場＝繽紛樹、台灣原生＝松樹），不會跟東西重疊（2026-11-20 清單第 29 項） */
 { const want={雨林島:3,水邊島:3,兒童牧場島:3,台灣原生島:5};
   for(const [k,n] of Object.entries(want)){ const I=ISLANDS[k], S=I&&I.sect; if(!S) continue; let put=0;
     for(let tr=0;tr<500&&put<n;tr++){ const t=(S.am+(Math.random()-.5)*2*S.hw*.9)*180/Math.PI, r=S.rm+(Math.random()-.5)*2*Math.max(.5,S.h-1.2), q=ringAt(t,r), x=q.x, z=q.z;
       if(regionAt(x,z)!==k||blocked(x,z,.8,STATIC)||KEEP_CLEAR.some(([cx,cz,cr])=>Math.hypot(x-cx,z-cz)<cr+.3)||BRIDGES.some(B=>Math.hypot(x-B.s.x,z-B.s.z)<3.2||Math.hypot(x-B.e.x,z-B.e.z)<3.2)) continue;
-      tree(x,z,1.6,false); put++; } if(location.search.includes('test')) (window.__garden??={})[k]=put; } resetGrid(); }
+      if(serviceZones().some(([sx,sz,sr])=>Math.hypot(x-sx,z-sz)<sr+1.5)) continue; tree(x,z,1.6,false); put++; } if(location.search.includes('test')) (window.__garden??={})[k]=put; } resetGrid(); }
 Object.values(STAGES).forEach(S=>{ const fx=S.front.x-S.center.x, fz=S.front.z-S.center.z, fl=Math.hypot(fx,fz), Fx=fx/fl, Fz=fz/fl; addTrash(S.center.x+Fz*-4.9+Fx*5.3, S.center.z-Fx*-4.9+Fz*5.3, Math.atan2(Fx,Fz)); });   // 兩個展區：長椅旁
 const allTrash=()=>[{x:TRASH.x,z:TRASH.z,lid:trashLid},...TRASH_EXTRA];
 function nearestTrash(){ const P=person?person.position:{x:0,z:0}; let best=null, bd=1e9; for(const t of allTrash()){ const d=Math.hypot(P.x-t.x,P.z-t.z); if(d<bd){ bd=d; best=t; } } return [best,bd]; }
@@ -2612,8 +2620,9 @@ try{ const lp=JSON.parse(localStorage.getItem('zooPOS')||'null'); if(lp) Object.
 restoreClones(); applyPositions(); drawPanel(); rebuild(); person.position.set(.2,0,16.4); person.rotation.y=Math.PI; wantYaw=Math.PI; markAct(); checkHash(); setupUI();
 // 場景都蓋好之後：樹如果跟後來才放的東西（花台、長椅、垃圾桶、販賣機、路燈、電視角…）疊在一起，就把樹拿掉
 function distTo(o,x,z){ if(o.r!==undefined) return Math.max(0,Math.hypot(x-o.x,z-o.z)-o.r); const c=Math.cos(o.yaw||0), s=Math.sin(o.yaw||0), dx=x-o.x, dz=z-o.z, lx=dx*c-dz*s, lz=dx*s+dz*c; return Math.hypot(Math.max(0,Math.abs(lx)-o.hw),Math.max(0,Math.abs(lz)-o.hd)); }
-{ const treeSt=new Set(TREES.map(t=>t.st)); for(const t of TREES){ if(t.keep||(t.item&&savedLayout(t.item.id))) continue; const crown=.6*t.sc;
-    if(STATIC.some(o=>!treeSt.has(o)&&distTo(o,t.x,t.z)<(o.r!==undefined&&o.r<=.25?crown:t.st.r+.3))||KEEP_CLEAR.some(([x,z,r])=>Math.hypot(t.x-x,t.z-z)<r)){ t.dead=true; if(t.item){ t.item.off=true; const j=STATIC.indexOf(t.st); } const i=STATIC.indexOf(t.st); if(i>=0) STATIC.splice(i,1); } } }
+{ const treeSt=new Set(TREES.map(t=>t.st)), SERV=serviceZones(); for(const t of TREES){ if(t.keep||(t.item&&savedLayout(t.item.id))) continue; const crown=.6*t.sc;
+    if(SERV.some(([x,z,r])=>Math.hypot(t.x-x,t.z-z)<r+(t.canopy??crown)*.85)||STATIC.some(o=>!treeSt.has(o)&&distTo(o,t.x,t.z)<(o.r!==undefined&&o.r<=.25?crown:t.st.r+.3))||KEEP_CLEAR.some(([x,z,r])=>Math.hypot(t.x-x,t.z-z)<r)){ t.dead=true; if(t.item){ t.item.off=true; const j=STATIC.indexOf(t.st); } const i=STATIC.indexOf(t.st); if(i>=0) STATIC.splice(i,1); } } }
+{ const Z0=new THREE.Matrix4().makeScale(0,0,0); TREES.forEach(t=>{ if(!t.dead) return; t.f=0; t.parts.forEach(pt=>{ const im=INST[pt.key]&&INST[pt.key].mesh; if(im&&pt.i<im.count){ im.setMatrixAt(pt.i,Z0); im.instanceMatrix.needsUpdate=true; } }); }); }   /* 清掉的樹馬上藏起來，不用等鏡頭經過 */
 resetGrid();   /* 樹整理完再重算找路格子 */
 addEventListener('pagehide',savePos); document.addEventListener('visibilitychange',()=>{ if(document.hidden) savePos(); });
 let PR_CUT=1;   // 跑不動時自動往下調
@@ -2717,7 +2726,7 @@ function openMap(){ mbox.classList.add('wide');
     const k=Object.keys(ISLANDS).find(k=>insideBy(ISLANDS[k],x,z,-.5)); if(!k) return; if(k==='保育員工作區') return toast('保育員專屬區域，敬請期待'); if(ISLANDS[k].soon) toast(`${k}即將開放，可以先過去看看`); closeModal(); walkTo(...standPoint(k)); toast(`往${MAP_NAME[k]||k}走過去`); }; }
 let miniHold=null, miniLong=false; mini.addEventListener('pointerdown',()=>{ miniLong=false; miniHold=setTimeout(()=>{ miniLong=true; setEditing(!editing); },1500); }); ['pointerup','pointerleave','pointercancel'].forEach(ev=>mini.addEventListener(ev,()=>clearTimeout(miniHold)));   /* 園方：長按小地圖 1.5 秒打開／關掉編輯模式 */
 mini.addEventListener('click',e=>{ e.stopPropagation(); if(miniLong){ miniLong=false; return; } openMap(); });
-if(location.search.includes('test')) window.__game={lampSpots,PLACE,KEEP_CLEAR,EDIT,placeItem,setEditing,groundY,HILLS,openBag,openQuiz,watchBad,get monkeyBad(){return monkeyBad;},get WALKS(){return WALK;},get REST_STOPS(){return REST_STOPS;},HUTS,enterHut,BRIDGES,getStatic:()=>STATIC,standPoint,openMap,drawMini,goStart,placeAt,askResume,savePos,setDressing,get dressing(){return dressing;},VENDS,CLIMB,get monkeyState(){return monkeyState;},spawnMonkey,get monkeyPerch(){return monkeyPerch;},monkey,findPath,obstacles,blocked,freePoint,walkable,get mover(){return mover;},GATE,get gateFade(){return gateFade;},DAY,ISLANDS,STAGES,planPath,regionAt,inv,got,POS,CFG,monkey,setEditing,get sheetStatus(){return sheetStatus;},get act(){return act;},sceneLoading,NPC_LIST,KEEPERS,talkTo,closeChat,get chatNPC(){return chatNPC;},openLive,openYouTube,TV_SCREENS,SWEEPERS,vendorServe,VENDOR,BUTTERFLIES,allTrash,nearestTrash,get swimOn(){return swimOn;},inPool,POOL,done,AREA_READS,openAreaRead,quizOpen,get seatMode(){return seatMode;},allSeats,nearestSeat,spawnMonkey:()=>{monkeyTimer=0;},walkTo,doAct,camera,controls,openFoot,footprints};
+if(location.search.includes('test')) window.__game={lampSpots,PLACE,KEEP_CLEAR,TREES,serviceZones,EDIT,placeItem,setEditing,groundY,HILLS,openBag,openQuiz,watchBad,get monkeyBad(){return monkeyBad;},get WALKS(){return WALK;},get REST_STOPS(){return REST_STOPS;},HUTS,enterHut,BRIDGES,getStatic:()=>STATIC,standPoint,openMap,drawMini,goStart,placeAt,askResume,savePos,setDressing,get dressing(){return dressing;},VENDS,CLIMB,get monkeyState(){return monkeyState;},spawnMonkey,get monkeyPerch(){return monkeyPerch;},monkey,findPath,obstacles,blocked,freePoint,walkable,get mover(){return mover;},GATE,get gateFade(){return gateFade;},DAY,ISLANDS,STAGES,planPath,regionAt,inv,got,POS,CFG,monkey,setEditing,get sheetStatus(){return sheetStatus;},get act(){return act;},sceneLoading,NPC_LIST,KEEPERS,talkTo,closeChat,get chatNPC(){return chatNPC;},openLive,openYouTube,TV_SCREENS,SWEEPERS,vendorServe,VENDOR,BUTTERFLIES,allTrash,nearestTrash,get swimOn(){return swimOn;},inPool,POOL,done,AREA_READS,openAreaRead,quizOpen,get seatMode(){return seatMode;},allSeats,nearestSeat,spawnMonkey:()=>{monkeyTimer=0;},walkTo,doAct,camera,controls,openFoot,footprints};
 </script>
 </body>
 </html>
