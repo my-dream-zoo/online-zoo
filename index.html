@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120181129';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120182202';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1122,7 +1122,7 @@ function blobGeo(w,h,depth){ const r=Math.min(.22,h/2-.01), sh=new THREE.Shape()
   const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,curveSegments:8}); g.translate(0,0,-depth/2); return g; }
 function gateFace(g,k,side,py=.37){ const colHex=AREA_COLOR[k]||'#ea8d2d', col=new THREE.MeshStandardMaterial({color:colHex,roughness:.7}), BW=3.4, BH=.92, by=2.75, ry=side>0?0:Math.PI;
   const board=new THREE.Mesh(blobGeo(BW,BH,.06),col); board.position.set(0,by,side*.075); g.add(board);
-  const [tt,asp]=titleTex(k,colHex), th=.5, tw=Math.min(BW-.3,th*asp); const tp=new THREE.Mesh(new THREE.PlaneGeometry(tw,tw/asp),new THREE.MeshStandardMaterial({map:tt,roughness:.7})); tp.position.set(side*-.25,by-.02,side*.14); tp.rotation.y=ry; g.add(tp);
+  const [tt,asp]=titleTex(k,colHex), th=.5, tw=Math.min(BW-.3,th*asp); const tp=new THREE.Mesh(new THREE.PlaneGeometry(tw,tw/asp),new THREE.MeshStandardMaterial({map:tt,roughness:.7})); tp.position.set(0,by-.02,side*.14);   /* 字置中 */ tp.rotation.y=ry; g.add(tp);
   [-1,1].forEach(sd=>(AREA_PLANT[k]||AREA_PLANT.入口廣場).forEach((u,i)=>{ const pl=new THREE.Mesh(new THREE.PlaneGeometry(.75,.75),new THREE.MeshStandardMaterial({map:plantTex(u),transparent:true,alphaTest:.4,side:THREE.DoubleSide})); pl.position.set(sd*((py>.5?1.62:1.38)+(i?.3:-.28)),py,side*(.16+i*.08)); pl.rotation.y=sd*.4+(i?Math.PI/2.4:0); g.add(pl); })); }
 // 每座橋中間一座「雙面」區牌（2026-11-15 作者）：站在 A 這邊看到的那面寫 B（要去的地方），站在 B 那邊看到的那面寫 A；不會連續看到兩塊牌子
 function starGeo(r1,r2,d){ const sh=new THREE.Shape(); for(let i=0;i<10;i++){ const a=i/10*Math.PI*2+Math.PI/2, r=i%2?r2:r1; const x=Math.cos(a)*r, y=Math.sin(a)*r; if(i) sh.lineTo(x,y); else sh.moveTo(x,y); } sh.closePath(); const g=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2}); g.translate(0,0,-d/2); return g; }
@@ -1630,7 +1630,7 @@ function setupUI2(){
   // 浮動招牌
   addLabel('遊客中心',()=>new THREE.Vector3(-26.7,5.9,4.0),{fg:'#3f7a3a'}); addLabel('園區資訊',()=>new THREE.Vector3(6.3,2.9,3.3),{fg:'#5a3c1c',h:.45});
   addLabel('飲料・零食',()=>PLACE.小賣店&&PLACE.小賣店.position.clone().setY(4.2),{fg:'#c0392b'}); addLabel('森林小棧・室內用餐',()=>PLACE.室內用餐區&&PLACE.室內用餐區.position.clone().setY(4.3),{fg:'#3f7a3a'});
-  addLabel('戲水池',()=>new THREE.Vector3(0,4.3,-3.4),{fg:'#2f6f8f'}); addLabel('垃圾桶',()=>PLACE.垃圾桶&&PLACE.垃圾桶.position.clone().setY(1.6),{fg:'#2f5f35',h:.32}); TRASH_EXTRA.forEach(t=>addLabel('垃圾桶',()=>new THREE.Vector3(t.x,1.6,t.z),{fg:'#2f5f35',h:.32})); { const SB=BRIDGES.find(B=>B.b==='保育員工作區'); if(SB) addLabel('保育員專屬區域（敬請期待）',()=>new THREE.Vector3((SB.s.x+SB.e.x)/2,3.3,(SB.s.z+SB.e.z)/2),{fg:'#3e5a3a',h:.4}); } addLabel('緬懷地圖',()=>new THREE.Vector3(MEMORIAL.x,3.6,MEMORIAL.z),{fg:'#6f63b8',h:.42});   Object.entries(STAGES).forEach(([k,st])=>addLabel(k==='狐獴島'?'狐獴':'孟加拉虎',()=>st.center.clone().setY(5.3),{fg:'#8c4a2b',h:.75}));
+  addLabel('戲水池',()=>new THREE.Vector3(0,4.3,-3.4),{fg:'#2f6f8f'}); /* 垃圾桶上方的浮字拿掉（2026-11-20 作者），桶身已有標籤 */ { const SB=BRIDGES.find(B=>B.b==='保育員工作區'); if(SB) addLabel('保育員專屬區域（敬請期待）',()=>new THREE.Vector3((SB.s.x+SB.e.x)/2,3.3,(SB.s.z+SB.e.z)/2),{fg:'#3e5a3a',h:.4}); } addLabel('緬懷地圖',()=>new THREE.Vector3(MEMORIAL.x,3.6,MEMORIAL.z),{fg:'#6f63b8',h:.42});   Object.entries(STAGES).forEach(([k,st])=>addLabel(k==='狐獴島'?'狐獴':'孟加拉虎',()=>st.center.clone().setY(5.3),{fg:'#8c4a2b',h:.75}));
   // 情境按鈕：走到小賣店前就能買、拿著食物就能吃喝收起來、靠近垃圾桶就能丟、靠近長椅就能坐（常用的不收進選單）
   let ctxKey='';
   const updateCtx=()=>{ if(!person) return; const P=person.position, near=(o,d)=>o&&Math.hypot(P.x-o.position.x,P.z-o.position.z)<d, h=inv.hand, L=[];
