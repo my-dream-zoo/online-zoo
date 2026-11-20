@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120230441';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120230844';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -558,18 +558,25 @@ function conTier(){ const g=new THREE.LatheGeometry([[0,-.4],[.22,-.39],[.42,-.3
 function bentLeaf(len,wid,droop,lift,bumps){ const g=new THREE.SphereGeometry(1,18,10); g.scale(wid,.07,len/2); g.translate(0,0,len/2); const p=g.attributes.position;
   for(let i=0;i<p.count;i++){ const z=p.getZ(i), u=Math.max(0,z/len), x=p.getX(i)*(bumps?1-.24*Math.abs(Math.sin(u*Math.PI*bumps)):1); p.setX(i,x); p.setY(i,p.getY(i)-droop*u*u*len-Math.abs(x)*.35); }   /* 往下彎＋中間葉脈微微凸起 */
   g.rotateX(-lift); g.computeVertexNormals(); return g; }
+/* 統一風格的 3D 草叢零件（2026-11-20 作者：植栽整體風格要一致）：每片葉子都是扁扁圓頭、有厚度，底部深、頂端亮（用頂點顏色），規律排一圈 */
+function paintY(g,c1,c2,axis='y'){ const p=g.attributes.position, a=new THREE.Color(c1), b=new THREE.Color(c2); let lo=1e9, hi=-1e9; for(let i=0;i<p.count;i++){ const v=axis==='y'?p.getY(i):p.getZ(i); lo=Math.min(lo,v); hi=Math.max(hi,v); } const col=[]; for(let i=0;i<p.count;i++){ const v=axis==='y'?p.getY(i):p.getZ(i), t=(v-lo)/((hi-lo)||1), c=a.clone().lerp(b,t); col.push(c.r,c.g,c.b); } g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); return g; }
+function tuftGeo(n,h,w,bend,c1,c2){ const parts=[]; for(let i=0;i<n;i++){ const hh=h*(i%2?.78:1), g=new THREE.SphereGeometry(1,8,8).scale(w,hh/2,.028).translate(0,hh/2,0), p=g.attributes.position; for(let k=0;k<p.count;k++){ const y=p.getY(k)/hh; p.setX(k,p.getX(k)+bend*y*y); } g.rotateY(i/n*Math.PI*2+.3); g.computeVertexNormals(); parts.push(paintY(g,c1,c2)); } return mergeGeometries(parts); }   /* 一叢草：n 片圓頭葉片排一圈，往外彎 */
+function leafCluster(n,len,wid,c1,c2){ return mergeGeometries([...Array(n)].map((_,i)=>paintY(bentLeaf(len,wid,.12,.25,0),c1,c2,'z').rotateY(i/n*Math.PI*2))); }   /* 竹葉一小簇 */
+function reedGeo(){ const parts=[tuftGeo(6,1.1,.042,.16,'#4a8a3a','#a9d46a')]; [[.09,.95],[-.08,.82]].forEach(([x,y])=>{ parts.push(paintY(new THREE.CylinderGeometry(.012,.012,y,5).translate(x,y/2,0),'#5f8f3a','#6f9f4a')); parts.push(paintY(new THREE.CapsuleGeometry(.04,.13,4,8).translate(x,y+.06,0),'#6a3f22','#8a5530')); }); return mergeGeometries(parts.map(g=>g.index?g.toNonIndexed():g)); }   /* 蘆葦＋香蒲 */
+function monsteraGeo(){ const stem=paintY(new THREE.CylinderGeometry(.016,.022,.5,6).translate(0,.25,0).rotateX(.25),'#3f8a35','#4f9a45'), leaf=paintY(new THREE.SphereGeometry(1,16,10).scale(.27,.035,.3).rotateX(-.45).translate(0,.5,.18),'#2f7f3a','#6cc062','z'); return mergeGeometries([stem.toNonIndexed(),leaf.toNonIndexed()]); }   /* 龜背芋：圓圓的大葉子＋莖 */
+const VCM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.75});
 const crossGeo=(w,h,n)=>mergeGeometries([...Array(n)].map((_,i)=>new THREE.PlaneGeometry(w,h).translate(0,h/2,0).rotateY(i*Math.PI/n)));
 /* 零件表：key → [形狀, 材質, 有沒有影子]；之後補種的植物也要畫得出來，所以全部先登記 */
 const PP={
   frond:[new THREE.PlaneGeometry(.46,1.3).rotateX(Math.PI/2).translate(0,0,.64).rotateX(.42),cardM('frond'),false],
   ffrond:[new THREE.PlaneGeometry(.4,1.1).rotateX(Math.PI/2).translate(0,0,.54).rotateX(.25),cardM('ffrond'),false],
-  fern:[crossGeo(.95,.8,4),cardM('fern'),false], grassD:[crossGeo(.62,.42,4),cardM('grassD'),false], grassG:[crossGeo(.72,.55,4),cardM('grassG'),false],
-  reed:[crossGeo(.5,1.35,2),cardM('reed'),false], bambooLf:[crossGeo(.9,.7,2),cardM('bamboo'),false],
+  fern:[crossGeo(.95,.8,4),cardM('fern'),false], grassD:[tuftGeo(8,.58,.068,.16,'#a8812f','#ecd488'),VCM,false], grassG:[tuftGeo(8,.64,.072,.16,'#3a8a32','#9fd86c'),VCM,false],   /* 草叢改 3D 圓頭葉片 */
+  reed:[reedGeo(),VCM,false], bambooLf:[leafCluster(6,.38,.08,'#3f8f3a','#9fd86a'),VCM,false],   /* 蘆葦、竹葉也改 3D */
   palm3a:[bentLeaf(1.3,.23,.42,.12,7),new THREE.MeshStandardMaterial({color:'#4fae45',roughness:.7}),true], palm3b:[bentLeaf(.88,.2,.22,.55,5),new THREE.MeshStandardMaterial({color:'#74ca5b',roughness:.7}),true],
   fern3a:[bentLeaf(1.05,.18,.4,.18,9),new THREE.MeshStandardMaterial({color:'#3f9a46',roughness:.7}),true], fern3b:[bentLeaf(.72,.16,.2,.6,7),new THREE.MeshStandardMaterial({color:'#64bc56',roughness:.7}),true],
   fernS:[bentLeaf(.58,.12,.2,.8,6),new THREE.MeshStandardMaterial({color:'#4aa548',roughness:.7}),true], fernS2:[bentLeaf(.42,.105,.12,1.0,5),new THREE.MeshStandardMaterial({color:'#6fc35c',roughness:.7}),true],   /* 小蕨叢：3D 圓葉片，規律排一圈 */
   heart:[new THREE.SphereGeometry(.13,12,10),new THREE.MeshStandardMaterial({color:'#3f8f3a',roughness:.7}),false],
-  monstera:[new THREE.PlaneGeometry(.55,.85).translate(0,.42,0).rotateX(-.3),cardM('monstera'),false],
+  monstera:[monsteraGeo(),VCM,true],   /* 龜背芋改 3D */
   stalk:[new THREE.CylinderGeometry(.045,.055,1,7).translate(0,.5,0),surfM('#7cbf55','rings',1,3),true],
   bark:[new THREE.CylinderGeometry(.06,.1,1,8).translate(0,.5,0),surfM('#8a5e3c','bark',2,2),true],
   fernTrunk:[new THREE.CylinderGeometry(.08,.11,1,8).translate(0,.5,0),surfM('#5a3f2a','bark',2,3),true],
@@ -632,8 +639,8 @@ function tree(x,z,sc=1,pot=true,yellow=0,baseY=0){ const parts=[]; const I0=inst
   const canopy=({palm:1.2,treefern:1.0,acacia:1.5,aloe:.45,bamboo:.6,monstera:.65,reeds:.45,conifer:.65,broad:1.05,fruit:1.05,bubble:.75}[kind]||.7)*sc;   /* 樹冠半徑：用來檢查有沒有蓋到走道 */
   const st={x,z,r:Math.max(rad,pot?.36*sc:.16)}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc,canopy}); }
 // 行道樹（2026-11-17 作者：取代廣場上的盆栽樹）：地上一小塊草地、周圍一圈石緣，細樹幹＋雲朵形樹冠；園方可以搬、轉、複製
-const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.085,1.3,8), crown:new THREE.SphereGeometry(.5,16,12) };   /* 行道樹也改圓滑泡泡樹冠 */
-const ST_MAT={ curb:new THREE.MeshStandardMaterial({color:'#d8cdb8',roughness:.95,flatShading:true}), grass:std('#8cc46a'), tuft:new THREE.MeshStandardMaterial({color:'#5f9e45',roughness:1,flatShading:true}) };
+const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:tuftGeo(5,.22,.035,.05,'#4f9a3e','#8cc96a'),tuftOld:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.085,1.3,8), crown:new THREE.SphereGeometry(.5,16,12) };   /* 行道樹也改圓滑泡泡樹冠 */
+const ST_MAT={ curb:new THREE.MeshStandardMaterial({color:'#d8cdb8',roughness:.95,flatShading:true}), grass:std('#8cc46a'), tuft:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8}) };   /* 行道樹下的小草也用同一種圓頭葉片 */
 function streetTree(x,z,sc=1.35,yellow=.35){ const k=Math.random()<yellow?'y':'abc'[Math.floor(Math.random()*3)], L=[];
   const add=(key,geo,mat,lx,ly,lz,ry,sx,sy=sx,sz=sx,sh=true)=>L.push({key,geo,mat,sh,L:M4(lx*sc,ly*sc,lz*sc,ry,sx*sc,sy*sc,sz*sc)});
   add('st_curb',ST_GEO.curb,ST_MAT.curb,0,0,0,0,1); add('st_grass',ST_GEO.grass,ST_MAT.grass,0,.11,0,0,1,1,1,false);
@@ -1288,7 +1295,7 @@ function makeArch(x,z,yaw,front,back){ const g=new THREE.Group(); g.position.set
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(.6,.68,.5,20),potM); pot.position.y=.05; pot.castShadow=true; m.add(pot);
     for(let i=0;i<10;i++){ const a=i/10*Math.PI*2, rb=new THREE.Mesh(new THREE.BoxGeometry(.05,.42,.04),ribM); rb.position.set(Math.sin(a)*.65,.05,Math.cos(a)*.65); rb.rotation.y=a; m.add(rb); }   // 花台上的直條紋
     const dome=new THREE.Mesh(new THREE.SphereGeometry(.62,18,10,0,Math.PI*2,0,Math.PI/2),grassM); dome.scale.y=.6; dome.position.y=.3; dome.castShadow=true; m.add(dome);
-    for(let i=0;i<4;i++){ const t=new THREE.Mesh(new THREE.ConeGeometry(.05,.28,5),grassM); t.position.set(Math.sin(i*1.7)*.35,.62,Math.cos(i*1.7)*.3); t.rotation.z=(i-1.5)*.15; m.add(t); } });
+    for(let i=0;i<3;i++){ const t=new THREE.Mesh(tuftGeo(5,.28,.04,.06,'#4f9a3e','#9fd86c'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8})); t.position.set(Math.sin(i*2.1)*.32,.5,Math.cos(i*2.1)*.28); m.add(t); } });   /* 拱門草坡上的小草也改圓頭葉片 */
   // 圓拱門（站在兩個草坡上）
   const arch=new THREE.Mesh(new THREE.TorusGeometry(1.62,.17,12,36,Math.PI),archM); arch.position.y=.45; arch.castShadow=true; g.add(arch);
   // 招牌：跟拱門同一個圓心的「弧形招牌」（像主題樂園大門），白色厚框＋彩色弧帶，字沿著弧線排；雙面各寫要走進去的那一區
@@ -1579,7 +1586,7 @@ function stageGardens(){ const hitS=(x,z,r)=>KEEP_CLEAR.some(([cx,cz,cr])=>Math.
         for(let f=0;f<5;f++){ const fl2=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),petals[(i+f)%3]); fl2.position.set(x+(Math.random()-.5)*.55,.36+Math.random()*.12,z+(Math.random()-.5)*.5); scene.add(fl2); } });
       { let run=[]; const flush=()=>{ if(run.length>=3) run.forEach(([x,z,t])=>inst('stone',stoneG,stoneM,M4(x,.025,z,t),false)); run=[]; };   /* 踏腳石小徑：至少連續 3 塊才放，不會只剩單獨一塊 */
         for(let t=0;t<6;t++){ const [x,z]=at(sd*(3.6+t*.42),3.6-t*.95); if(!insideBy(I,x,z,1.2)||hitS(x,z,.1)){ flush(); continue; } run.push([x,z,t]); } flush(); }
-      for(let t=0;t<10;t++){ const [x,z]=at(sd*(4+Math.random()*2.4),-2.4+Math.random()*5); if(!insideBy(I,x,z,1.2)||hitS(x,z,.1)) continue; for(let q=0;q<3;q++) inst('tuft',tuftG,leafM,M4(x+(Math.random()-.5)*.25,.2,z+(Math.random()-.5)*.25,0,.8+Math.random()*.5),false); }
+      for(let t=0;t<10;t++){ const [x,z]=at(sd*(4+Math.random()*2.4),-2.4+Math.random()*5); if(!insideBy(I,x,z,1.2)||hitS(x,z,.1)) continue; { const dry=k==='狐獴島'; inst('tuft'+(dry?'D':'G'),dry?PP.grassD[0]:PP.grassG[0],VCM,M4(x,0,z,Math.random()*6,.85+Math.random()*.4),false); } }   /* 展場庭園的草也用同一種 3D 草叢 */
     }); }); }
 stageGardens();
 // 戲水池（參考園區親水區）：一圈木頭階梯池邊、淺淺的水（人可以走進去）、上方細柱撐著的不鏽鋼圓角大盒子
