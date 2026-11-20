@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120225216';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120230005';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -553,7 +553,7 @@ function surfTex(kind){ const key='s_'+kind; if(PT2[key]) return PT2[key]; const
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return PT2[key]=t; }
 const surfM=(color,kind,ru,rv,extra={})=>{ const tx=surfTex(kind).clone(); tx.needsUpdate=true; tx.repeat.set(ru,rv); return new THREE.MeshStandardMaterial({color,map:tx,roughness:.8,...extra}); };
 const cardM=kind=>new THREE.MeshStandardMaterial({map:plantCard(kind),alphaTest:.45,side:THREE.DoubleSide,roughness:.85});
-function conTier(){ const g=new THREE.LatheGeometry([[0,.5],[.12,.46],[.27,.3],[.42,.06],[.54,-.18],[.56,-.27],[.5,-.32],[.36,-.26],[.15,-.12],[0,-.08]].map(([x,y])=>new THREE.Vector2(x,y)),18); g.computeVertexNormals(); return g; }   /* 底部往內收，不會看到平平的底盤 */
+function conTier(){ const g=new THREE.LatheGeometry([[0,-.4],[.22,-.39],[.42,-.35],[.54,-.26],[.57,-.17],[.5,0],[.36,.22],[.2,.4],[.08,.49],[0,.51]].map(([x,y])=>new THREE.Vector2(x,y)),20); g.computeVertexNormals(); return g; }   /* 每層是實心、外凸的圓錐（像水滴），不會看起來被挖空（2026-11-20 作者） */
 const crossGeo=(w,h,n)=>mergeGeometries([...Array(n)].map((_,i)=>new THREE.PlaneGeometry(w,h).translate(0,h/2,0).rotateY(i*Math.PI/n)));
 /* 零件表：key → [形狀, 材質, 有沒有影子]；之後補種的植物也要畫得出來，所以全部先登記 */
 const PP={
@@ -568,7 +568,7 @@ const PP={
   acacia:[new THREE.SphereGeometry(1,20,10),surfM('#8fae4e','foliage',3,1.2),true],
   broad:[new THREE.SphereGeometry(.6,16,12),surfM('#4f9a45','foliage',2,2),true], broad2:[new THREE.SphereGeometry(.6,16,12),surfM('#6aaf4f','foliage',2,2),true],
   fruitTree:[new THREE.SphereGeometry(.6,16,12),surfM('#6fbf55','foliage',2,2),true], fruit:[new THREE.SphereGeometry(.06,8,6),new THREE.MeshStandardMaterial({color:'#e8453c',roughness:.5}),false],
-  conifer:[conTier(),surfM('#3e8f5f','foliage',3,2),true], conifer2:[conTier(),surfM('#559f6c','foliage',3,2),true],   /* 針葉樹每層改圓圓的鐘形，不要尖 */
+  conifer:[conTier(),new THREE.MeshStandardMaterial({color:'#3f9461',roughness:.7}),true], conifer2:[conTier(),new THREE.MeshStandardMaterial({color:'#56a873',roughness:.7}),true],   /* 針葉樹：圓潤實心的三層，不貼紋路（紋路看起來像一圈圈凹痕） */
   aloe:[new THREE.SphereGeometry(1,10,8).scale(.075,.3,.05).translate(0,.28,0).rotateX(.55),new THREE.MeshStandardMaterial({color:'#7fae8a',roughness:.7}),true],   /* 蘆薈葉改圓頭 */
   spike:[new THREE.CylinderGeometry(.012,.018,.75,6).translate(0,.375,0),std('#7a8f5a'),false],
   bud:[new THREE.CapsuleGeometry(.016,.055,4,8).translate(0,-.045,0),new THREE.MeshStandardMaterial({color:'#f2733a',roughness:.55}),false], budTip:[new THREE.SphereGeometry(.018,8,6).translate(0,-.085,0),new THREE.MeshStandardMaterial({color:'#ffd27a',roughness:.55}),false] };   /* 蘆薈花：花莖上一串往下垂的小管狀花，橘紅色、尖端黃色 */
