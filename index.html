@@ -150,6 +150,8 @@
   #loader .lfill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#d9a441,#c9853a);transition:width .35s ease}
   #loader .lpct{font-size:14px;color:#7a6f60;width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
   #loader .ltip{font-size:13px;color:#7a6f60;line-height:1.7;min-height:3.4em}
+  #ldGo{display:block;margin:4px auto 14px;padding:12px 38px;border:0;border-radius:99px;background:#c9853a;color:#fff;font-size:17px;font-weight:700;letter-spacing:.12em;box-shadow:0 4px 0 #9c6426;cursor:pointer;animation:ldbob 1.8s ease-in-out infinite}
+  #ldGo[hidden]{display:none} #ldGo:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6426}
   @keyframes ldspin{to{transform:rotate(360deg)}}
   @keyframes ldbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   /* 直播視窗：做成一台電視的樣子 */
@@ -178,8 +180,6 @@
   #modal .box.wide{width:min(460px,92%);padding:0;overflow:hidden;max-height:86vh;display:flex;flex-direction:column}
   .rd{display:flex;flex-direction:column;min-height:0;max-height:86vh}
   .rd-head{display:flex;align-items:center;gap:10px;background:var(--c);color:#fff;padding:12px 16px}
-  .rd-deco{flex:none;width:60px;height:60px;border-radius:18px;background:#fff;color:var(--c);font-weight:900;font-size:15px;line-height:1.1;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;transform:rotate(-6deg);box-shadow:0 2px 4px rgba(0,0,0,.2);position:relative}
-  .rd-deco::before{content:'✿';position:absolute;top:-9px;right:-7px;color:#f28cb1;font-size:18px}
   .rd-head h4{color:#fff!important;font-size:17px!important;margin:0 0 2px!important} .rd-head small{font-size:12px;opacity:.92}
   .rd-body{overflow-y:auto;padding:12px 14px 4px;display:flex;flex-direction:column;gap:10px}
   .rd-secs{display:flex;flex-direction:column;gap:8px}
@@ -232,6 +232,7 @@
   <div class="lmsg" id="ldMsg">正在準備小島，馬上就好…</div>
   <div class="lbar"><div class="ltrack"><div class="lfill" id="ldFill"></div></div><div class="lpct" id="ldPct">0%</div></div>
   <div class="ltip" id="ldTip">第一次進來要載入小島、動物和保育員，請稍候一下</div>
+  <button id="ldGo" hidden>進入動物園</button>
   <div class="ltip" style="opacity:.75">動物園粉絲自製・非官方網站</div>
 </div></div>
 <script>
@@ -241,7 +242,11 @@
   var trickle=setInterval(function(){ if(!done) set(p+(90-p)*.06); },200);
   var tipT=setInterval(function(){ var el=document.getElementById('ldTip'); if(el){ el.textContent=tips[ti%tips.length]; ti++; } },2600);
   window.__ldProgress=set;
-  window.__ldDone=function(){ done=true; set(100); clearInterval(trickle); clearInterval(tipT); setTimeout(function(){ var l=document.getElementById('loader'); if(l){ l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); } },350); };
+  window.__ldDone=function(){ done=true; set(100); clearInterval(trickle); clearInterval(tipT);
+    /* 2026-11-20：跑完停在載入畫面，按「進入動物園」才進去 */
+    setTimeout(function(){ var l=document.getElementById('loader'), b=document.getElementById('ldGo'), m=document.getElementById('ldMsg'), t=document.getElementById('ldTip'); if(!l) return;
+      if(m) m.textContent='小島準備好了！'; if(t) t.textContent='用左下的搖桿或點地上就能走路'; if(!b){ l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); return; }
+      b.hidden=false; b.focus(); b.onclick=function(){ b.hidden=true; l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); }; },350); };
 })();
 </script>
 <div id="wrap">
@@ -297,7 +302,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120165710';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120171507';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -340,7 +345,9 @@ const AREA_READS={
     dos:[['✅','保持安靜、慢慢觀察'],['❌','大聲呼喊、拍打玻璃']],
     cta:'來虎山看看，你認得出哪一隻是小虎嗎？'} };
 // 試算表「科普」分頁（展區那欄）有填的話，會用試算表的文字（純文字排版）
-/* 解說牌圖片：程式畫的示意圖（取代園區照片，之後 作者 自己畫），在下面 animalArt() 畫好後填入 */
+/* 解說牌照片：官方 IG 已公開發布的照片，來源見 assets/素材來源.txt（2026-11-20 作者） */
+AREA_READS.狐獴島.photo='assets/photo_meerkat.jpg'; AREA_READS.狐獴島.photoCap='狐獴的站哨日常'; AREA_READS.狐獴島.photoSrc='資料來源：壽山動物園官方 IG';
+AREA_READS.孟加拉虎島.photo='assets/photo_tiger.jpg'; AREA_READS.孟加拉虎島.photoCap='孟加拉虎「小紅」泡澡打大哈欠'; AREA_READS.孟加拉虎島.photoSrc='資料來源：壽山動物園官方 IG・志工郭美利阿嬤拍攝';
 AREA_READS.狐獴島.p=AREA_READS.狐獴島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n'); AREA_READS.孟加拉虎島.p=AREA_READS.孟加拉虎島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n');
 // 展場直播（YouTube）：都不是園方頻道開的，網址可能會換，用前先確認還在播
 const EMBED_OK=true;   // 能不能把 YouTube 嵌在網頁裡播：正式網站可以；claude.ai 預覽頁不行（會被擋成黑畫面），build_island_preview.py 會改成 false
@@ -363,34 +370,6 @@ const QUIZ=[
 ];
 // 地上的腳印（程式畫的暫代剪影，footCanvas；之後 作者 自己畫）
 // 2026-11-20 作者：素材改自己原創 → 官方照片、腳印插畫都拿掉，先用程式畫的「暫代圖」，之後 作者 參考這些再自己畫
-// 解說牌示意圖（取代園區照片）：kind = meerkat／tiger
-const ART_C={};
-function animalArt(kind){ if(ART_C[kind]) return ART_C[kind]; const c=document.createElement('canvas'); c.width=640; c.height=420; const g=c.getContext('2d');
-  const sky=g.createLinearGradient(0,0,0,420); if(kind==='meerkat'){ sky.addColorStop(0,'#ffe7b8'); sky.addColorStop(1,'#fff8ea'); } else { sky.addColorStop(0,'#cdeedd'); sky.addColorStop(1,'#f4fbf4'); } g.fillStyle=sky; g.fillRect(0,0,640,420);
-  g.fillStyle=kind==='meerkat'?'#e9b874':'#8cc58a'; g.beginPath(); g.moveTo(0,330); for(let x=0;x<=640;x+=16) g.lineTo(x,322+Math.sin(x/60)*10); g.lineTo(640,420); g.lineTo(0,420); g.fill();
-  const E=(x,y,rx,ry,col,rot=0)=>{ g.fillStyle=col; g.beginPath(); g.ellipse(x,y,rx,ry,rot,0,7); g.fill(); };
-  if(kind==='meerkat'){ // 站哨的狐獴：木頭上挺直站好
-    g.fillStyle='#a8754a'; g.beginPath(); g.roundRect(230,312,180,40,18); g.fill(); E(320,312,90,14,'#c48d5c');
-    E(372,300,16,40,'#c99a63',-.6);                                  // 尾巴
-    E(320,232,46,82,'#d8ad74'); E(320,250,30,58,'#f0d3a4');         // 身體＋肚子
-    E(298,196,10,26,'#c99a63',.5); E(342,196,10,26,'#c99a63',-.5);  // 前腳
-    E(320,128,36,40,'#d8ad74'); E(320,150,18,14,'#f0d3a4');         // 頭＋嘴
-    E(304,124,9,11,'#4a3424'); E(336,124,9,11,'#4a3424'); E(306,122,3,3,'#fff'); E(338,122,3,3,'#fff');   // 黑眼圈
-    E(320,146,6,5,'#3a2a20'); E(290,104,8,9,'#4a3424'); E(350,104,8,9,'#4a3424');                        // 鼻子＋耳朵
-    g.strokeStyle='#4a3424'; g.lineWidth=3; g.beginPath(); g.arc(320,152,8,.2,Math.PI-.2); g.stroke();
-  } else { // 老虎：大大的臉
-    E(250,110,34,34,'#e98a2e'); E(390,110,34,34,'#e98a2e'); E(250,112,18,18,'#ffe0c2'); E(390,112,18,18,'#ffe0c2');   // 耳朵
-    E(320,200,120,108,'#f29a3a'); E(320,236,70,56,'#fff6ea');                                                       // 臉＋嘴邊
-    g.strokeStyle='#3b2a20'; g.lineCap='round'; g.lineWidth=10;
-    [[-1],[1]].forEach(([d])=>{ [[0,0],[14,26],[6,52]].forEach(([dx,dy])=>{ g.beginPath(); g.moveTo(320+d*(118-dx),170+dy); g.quadraticCurveTo(320+d*(92-dx),176+dy,320+d*(78-dx),168+dy); g.stroke(); }); });
-    [[-22],[0],[22]].forEach(([dx])=>{ g.beginPath(); g.moveTo(320+dx,98); g.lineTo(320+dx*.7,128); g.stroke(); });   // 額頭「王」字紋
-    E(282,184,14,16,'#3b2a20'); E(358,184,14,16,'#3b2a20'); E(286,180,5,5,'#fff'); E(362,180,5,5,'#fff');           // 眼睛
-    g.fillStyle='#e0707a'; g.beginPath(); g.moveTo(304,218); g.lineTo(336,218); g.lineTo(320,236); g.closePath(); g.fill();   // 鼻子
-    g.lineWidth=4; g.beginPath(); g.moveTo(320,236); g.lineTo(320,250); g.arc(308,250,12,0,Math.PI*.9); g.moveTo(320,250); g.arc(332,250,12,Math.PI,Math.PI*.1,true); g.stroke();
-  }
-  g.fillStyle='rgba(90,60,28,.55)'; g.font='bold 22px "Noto Sans TC",sans-serif'; g.textAlign='right'; g.fillText('示意圖・之後換成自己畫的',622,404);
-  return ART_C[kind]=c; }
-const artURL=k=>animalArt(k).toDataURL('image/png');
 // 動物腳印（取代插畫）：key = tiger／bear／capybara／emu／muntjac／raccoon，深咖啡剪影、透明底
 const FOOT_C={};
 function footCanvas(key){ if(FOOT_C[key]) return FOOT_C[key]; const c=document.createElement('canvas'); c.width=200; c.height=240; const g=c.getContext('2d'); g.fillStyle='#5a3c26'; g.strokeStyle='#5a3c26'; g.lineCap='round'; g.lineJoin='round';
@@ -406,7 +385,6 @@ function footCanvas(key){ if(FOOT_C[key]) return FOOT_C[key]; const c=document.c
 // 點腳印後的解答卡：淡色底＋大腳印＋名稱
 function footAnswerURL(key,name){ const c=document.createElement('canvas'); c.width=260; c.height=260; const g=c.getContext('2d'); g.fillStyle='#fff3dc'; g.beginPath(); g.roundRect(0,0,260,260,28); g.fill();
   g.drawImage(footCanvas(key),55,22,150,180); g.fillStyle='#5a3c26'; g.font='900 26px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.fillText((name||'').replace(/（.*）/,''),130,236); return c.toDataURL('image/png'); }
-AREA_READS.狐獴島.photo=artURL('meerkat'); AREA_READS.狐獴島.photoCap='站哨的狐獴（示意圖）'; AREA_READS.孟加拉虎島.photo=artURL('tiger'); AREA_READS.孟加拉虎島.photoCap='孟加拉虎（示意圖）';
 const FOOT={name:'老虎（前肢）',text:'大大的肉球、四個圓圓的腳趾，是孟加拉虎的前腳腳印！老虎是大型貓科動物，腳掌又大又厚，走路很安靜。',
   print:'',img:'',count:6,hint:'地上有腳印……是誰的呢？'};
 // 各區的動物腳印（第一筆老虎沿用上面的 FOOT，試算表「腳印」分頁可以改它）；where：在哪一區、從哪裡走到哪裡（展區用展場的相對座標 lat/fwd）
@@ -878,8 +856,8 @@ function guideTex(title,kind){ const c=document.createElement('canvas'); c.width
   g.fillStyle='#fffaf0'; g.fillRect(0,0,512,340); g.fillStyle=main; g.fillRect(0,0,512,86); g.fillStyle='#fff'; g.font='bold 50px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(title+'・解說牌',256,46);
   g.fillStyle='#5a3c1c'; g.font='30px "Noto Sans TC",sans-serif'; g.textAlign='left'; ['走近一點','看看牠的','小知識'].forEach((t,i)=>g.fillText(t,290,150+i*46));
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
-  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.max(w/img.width,h/img.height), sw=w/r, sh=h/r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,y,w,h); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); t.needsUpdate=true; };
-  img.src=artURL(kind);   /* 程式畫的示意圖（取代園區照片） */
+  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.max(w/img.width,h/img.height), sw=w/r, sh=h/r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,y,w,h); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); g.fillStyle='#8a7a62'; g.font='15px "Noto Sans TC",sans-serif'; g.textAlign='left'; g.fillText('照片：壽山動物園官方 IG',290,300); t.needsUpdate=true; };
+  img.src=`assets/photo_${kind}.jpg`;   /* 官方 IG 照片，來源見 assets/素材來源.txt */
   return t; }
 // 直播電視機的佈景、招牌
 function tvBackTex(kind){ const c=document.createElement('canvas'); c.width=512; c.height=420; const g=c.getContext('2d');
@@ -889,9 +867,9 @@ function tvBackTex(kind){ const c=document.createElement('canvas'); c.width=512;
   g.fillStyle='rgba(255,255,255,.85)'; [[110,90,30],[150,80,38],[190,92,28],[360,120,24],[392,112,30],[424,122,22]].forEach(([x,y,r])=>{ g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); });
   for(let i=0;i<14;i++){ g.fillStyle=['#ffd35a','#ff9fb5','#ffffff'][i%3]; const x=30+Math.random()*450, y=20+Math.random()*180; g.beginPath(); for(let k=0;k<10;k++){ const r=k%2?4:9, an=k/10*Math.PI*2-Math.PI/2; g.lineTo(x+Math.cos(an)*r,y+Math.sin(an)*r); } g.fill(); }   // 小星星
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
-function bigSignTex(text,bg){ const c=document.createElement('canvas'), q0=c.getContext('2d'), fs=96; q0.font=`900 ${fs}px "Noto Sans TC",sans-serif`; const w=Math.ceil(q0.measureText(text).width)+120; c.width=w; c.height=170;
+function bigSignTex(text,bg){ const c=document.createElement('canvas'), q0=c.getContext('2d'), fs=96; const w=Math.ceil(bounceW(q0,text,fs))+150; c.width=w; c.height=170;
   const q=c.getContext('2d'); q.fillStyle='#ffffff'; q.beginPath(); q.roundRect(0,0,w,170,60); q.fill(); q.fillStyle=bg; q.beginPath(); q.roundRect(14,14,w-28,142,48); q.fill();
-  q.font=`900 ${fs}px "Noto Sans TC",sans-serif`; q.textAlign='center'; q.textBaseline='middle'; q.lineJoin='round'; q.lineWidth=16; q.strokeStyle='#ffffff'; q.strokeText(text,w/2,88); q.fillStyle=bg; q.fillText(text,w/2,88);
+  bounceText(q,text,w/2,88,fs,bg);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return [t,w/170]; }
 const STAGE_SS=1.15;   // 展場（棲地、玻璃、石牆、造景、紙板動物）放大 15%，腹地也跟著加大
 function makeStage(islandKey,kind,title){ const I=ISLANDS[islandKey], dx=I.x-CENTER.x, dz=I.z-CENTER.z, L=Math.hypot(dx,dz), ux=dx/L, uz=dz/L;   /* 展場正面朝中央廣場 */
@@ -1102,11 +1080,7 @@ const CANOPY=new THREE.Group(); scene.add(CANOPY); FADERS.push(CANOPY);
 const TEXLOAD=new THREE.TextureLoader(), TEXC={};
 const loadTex=u=>TEXC[u]??=(()=>{ const t=TEXLOAD.load(u); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; })();
 const AREA_COLOR={台灣原生區:'#5f8f4f',熊熊區:'#7a5236',入口廣場:'#ea8d2d',遊客服務區:'#4f9a4a',狐獴島:'#e0a03a',孟加拉虎島:'#3f7a46',中央廣場:'#c9853a',兒童牧場島:'#e07b5a',台灣原生島:'#5f8f4f',熊熊島:'#7a5236',觀景台:'#4f86b0',雨林島:'#2f7d5a',水邊島:'#3a8fb8'};
-// 2026-11-20 作者：改成自己原創，壽Q全部拿掉（之後 作者 自己放圖）。原本角色的位置先放「粗體字貼紙」：字活潑地跳著排、配花朵或該區元素小插圖，全部用程式畫，不用任何外部圖檔。
-// 標語是暫定的，改這張表就好：[標語, 裝飾元素]
-const AREA_DECO={入口廣場:['歡迎光臨','flower'],遊客服務區:['休息一下','leaf'],中央廣場:['出發囉','star'],狐獴島:['站哨中','sun'],孟加拉虎島:['虎虎生風','stripe'],
-  台灣原生區:['在地好朋友','leaf'],熊熊區:['熊抱一下','paw'],台灣原生島:['在地好朋友','leaf'],熊熊島:['熊抱一下','paw'],兒童牧場島:['咩～來玩','flower'],觀景台:['看好遠','cloud'],雨林島:['綠意滿滿','leaf'],水邊島:['噗通噗通','wave']};
-const DECO_C={};
+// 2026-11-20 作者：壽Q全部拿掉；原本角色的位置不放東西，區名改成招牌上的跳動字（bounceText）
 function decoFlower(q,x,y,r,petal,mid='#f6c43a'){ q.fillStyle=petal; for(let i=0;i<5;i++){ const a=i/5*Math.PI*2-Math.PI/2; q.beginPath(); q.arc(x+Math.cos(a)*r*.62,y+Math.sin(a)*r*.62,r*.48,0,7); q.fill(); } q.fillStyle=mid; q.beginPath(); q.arc(x,y,r*.36,0,7); q.fill(); }
 function decoLeaf(q,x,y,r,rot,col='#6fae4f'){ q.save(); q.translate(x,y); q.rotate(rot); q.fillStyle=col; q.beginPath(); q.ellipse(0,0,r,r*.45,0,0,7); q.fill(); q.strokeStyle='rgba(255,255,255,.7)'; q.lineWidth=r*.08; q.beginPath(); q.moveTo(-r*.8,0); q.lineTo(r*.8,0); q.stroke(); q.restore(); }
 function decoStar(q,x,y,r,col='#f6c43a'){ q.fillStyle=col; q.beginPath(); for(let i=0;i<10;i++){ const a=i/10*Math.PI*2-Math.PI/2, rr=i%2?r*.45:r; q.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } q.closePath(); q.fill(); }
@@ -1115,21 +1089,6 @@ function decoSun(q,x,y,r){ q.strokeStyle='#f3a73b'; q.lineWidth=r*.16; q.lineCap
 function decoCloud(q,x,y,r){ q.fillStyle='#ffffff'; q.strokeStyle='#9cc4e4'; q.lineWidth=r*.1; [[-.5,.1,.42],[0,-.15,.55],[.5,.1,.4]].forEach(([dx,dy,rr])=>{ q.beginPath(); q.arc(x+dx*r,y+dy*r,rr*r,0,7); q.stroke(); }); [[-.5,.1,.42],[0,-.15,.55],[.5,.1,.4]].forEach(([dx,dy,rr])=>{ q.beginPath(); q.arc(x+dx*r,y+dy*r,rr*r,0,7); q.fill(); }); }
 function decoWave(q,x,y,w,col){ q.strokeStyle=col; q.lineWidth=w*.07; q.lineCap='round'; q.beginPath(); for(let i=0;i<=40;i++){ const t=i/40; q.lineTo(x-w/2+t*w,y+Math.sin(t*Math.PI*4)*w*.06); } q.stroke(); }
 function decoStripe(q,x,y,r){ q.strokeStyle='#3b2a20'; q.lineWidth=r*.16; q.lineCap='round'; [-1,0,1].forEach(i=>{ q.beginPath(); q.moveTo(x+i*r*.45-r*.1,y-r*.6); q.quadraticCurveTo(x+i*r*.45+r*.18,y,x+i*r*.45-r*.05,y+r*.6); q.stroke(); }); }
-// 粗體字貼紙：白色圓角貼紙底＋區域色粗邊，字一個一個上下跳、輕輕歪，兩種顏色交錯，四角配裝飾
-function decoTex(k){ if(DECO_C[k]) return DECO_C[k]; const [text,motif]=AREA_DECO[k]||AREA_DECO.入口廣場, col=AREA_COLOR[k]||'#ea8d2d';
-  const W=600,H=520, c=document.createElement('canvas'); c.width=W; c.height=H; const q=c.getContext('2d');
-  q.fillStyle='#ffffff'; q.beginPath(); q.roundRect(20,40,W-40,H-80,130); q.fill(); q.lineWidth=22; q.strokeStyle=col; q.beginPath(); q.roundRect(40,60,W-80,H-120,112); q.stroke();
-  const chars=[...text], rows=chars.length>3?[chars.slice(0,Math.ceil(chars.length/2)),chars.slice(Math.ceil(chars.length/2))]:[chars], fs=rows.length>1?128:150, dark='#5a3c1c';
-  q.textAlign='center'; q.textBaseline='middle'; q.lineJoin='round'; q.font=`900 ${fs}px "Noto Sans TC",sans-serif`;
-  let n=0; rows.forEach((row,ri)=>{ const y=H/2+(ri-(rows.length-1)/2)*fs*1.02, step=fs*.98;
-    row.forEach((ch,ci)=>{ const x=W/2+(ci-(row.length-1)/2)*step, rot=(n%2?.12:-.1), dy=(n%2?10:-10); q.save(); q.translate(x,y+dy); q.rotate(rot);
-      q.lineWidth=20; q.strokeStyle='#ffffff'; q.strokeText(ch,0,0); q.fillStyle=n%2?dark:col; q.fillText(ch,0,0); q.restore(); n++; }); });
-  const pk=['#f28cb1','#f6c43a','#8fc7ef','#f39a6b'];
-  const corner=(x,y,i)=>{ const r=46; if(motif==='flower') decoFlower(q,x,y,r,pk[i%4]); else if(motif==='leaf') decoLeaf(q,x,y,r*1.1,i*1.3+.4); else if(motif==='star') decoStar(q,x,y,r,i%2?'#f6c43a':col);
-    else if(motif==='paw') decoPaw(q,x,y,r,i%2?col:dark); else if(motif==='sun') { if(i===0) decoSun(q,x,y,r*1.1); else decoFlower(q,x,y,r*.8,pk[i%4]); } else if(motif==='cloud') { if(i<2) decoCloud(q,x,y,r*1.1); else decoStar(q,x,y,r*.8); }
-    else if(motif==='wave') decoWave(q,x,y,r*2.4,i%2?'#3a8fb8':'#8fc7ef'); else if(motif==='stripe') { if(i%2===0) decoStripe(q,x,y,r); else decoLeaf(q,x,y,r*1.1,i); } };
-  [[78,92],[W-78,H-92],[W-70,90],[72,H-88]].forEach(([x,y],i)=>corner(x,y,i));
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return DECO_C[k]=[t,W/H]; }
 // 區牌柱腳的花草：程式畫的花和草（取代原本的明信片素材）
 const AREA_PLANT={入口廣場:['grass','flower:#f28cb1'],遊客服務區:['grass','flower:#8fc7ef'],狐獴島:['cactus','grass'],孟加拉虎島:['grass','flower:#f39a6b']};
 const PLANT_C={};
@@ -1139,16 +1098,23 @@ function plantTex(spec){ if(PLANT_C[spec]) return PLANT_C[spec]; const c=documen
   else if(kind==='cactus'){ q.fillStyle='#5f9f45'; q.beginPath(); q.roundRect(103,60,50,195,25); q.fill(); q.beginPath(); q.roundRect(55,110,36,80,18); q.fill(); q.beginPath(); q.roundRect(165,90,36,80,18); q.fill(); q.fillRect(80,160,30,22); q.fillRect(150,140,30,22); decoFlower(q,128,58,22,'#f28cb1'); }
   else { [[90,170,-25],[128,200,0],[166,165,25],[110,120,-40],[150,120,40]].forEach(([x,h,a],i)=>blade(x,h,a,i%2?'#79b85c':'#5f9f45')); [[86,82],[128,52],[172,88]].forEach(([x,y],i)=>{ q.strokeStyle='#5f9f45'; q.lineWidth=6; q.beginPath(); q.moveTo(x,y); q.lineTo(128+(x-128)*.3,250); q.stroke(); decoFlower(q,x,y,30,i===1?'#ffffff':col); }); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return PLANT_C[spec]=t; }
-function titleTex(text,bg){ const c=document.createElement('canvas'), q0=c.getContext('2d'), fs=110; q0.font=`900 ${fs}px "Noto Sans TC",sans-serif`; const w=Math.ceil(q0.measureText(text).width)+60; c.width=w; c.height=160;
-  const q=c.getContext('2d'); q.fillStyle=bg; q.fillRect(0,0,w,160); q.font=`900 ${fs}px "Noto Sans TC",sans-serif`; q.textAlign='center'; q.textBaseline='middle'; q.lineJoin='round'; q.lineWidth=18; q.strokeStyle='rgba(60,40,20,.55)'; q.strokeText(text,w/2,84); q.fillStyle='#ffffff'; q.fillText(text,w/2,82);
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return [t,w/160]; }
+// 招牌字（2026-11-20 作者）：橫式排列、一個字一個字上下跳＋輕輕歪；白字＋「招牌原色加深」描邊＋最外圈圓潤白邊
+function shade(hex,k){ const n=parseInt(hex.slice(1),16), f=v=>Math.round(v*k).toString(16).padStart(2,'0'); return '#'+f(n>>16&255)+f(n>>8&255)+f(n&255); }
+function bounceW(q,text,fs){ q.font=`900 ${fs}px "Noto Sans TC",sans-serif`; return [...text].reduce((w,ch)=>w+q.measureText(ch).width*1.04,0); }
+function bounceText(q,text,cx,cy,fs,col){ const chars=[...text]; q.font=`900 ${fs}px "Noto Sans TC",sans-serif`; q.textAlign='center'; q.textBaseline='middle'; q.lineJoin='round';
+  const ws=chars.map(ch=>q.measureText(ch).width*1.04), total=ws.reduce((a,b)=>a+b,0); let x=cx-total/2;
+  const pos=chars.map((ch,i)=>{ const p={ch,x:x+ws[i]/2,y:cy+(i%2?fs*.1:-fs*.1),r:(i%2?.1:-.09)}; x+=ws[i]; return p; });
+  const pass=(lw,stroke,fill)=>pos.forEach(P=>{ q.save(); q.translate(P.x,P.y); q.rotate(P.r); if(stroke){ q.lineWidth=lw; q.strokeStyle=stroke; q.strokeText(P.ch,0,0); } if(fill){ q.fillStyle=fill; q.fillText(P.ch,0,0); } q.restore(); });
+  pass(fs*.36,'#ffffff'); pass(fs*.2,shade(col,.62)); pass(0,null,'#ffffff'); }
+function titleTex(text,bg){ const c=document.createElement('canvas'), fs=110; const w=Math.ceil(bounceW(c.getContext('2d'),text,fs))+110; c.width=w; c.height=180;
+  const q=c.getContext('2d'); q.fillStyle=bg; q.fillRect(0,0,w,180); bounceText(q,text,w/2,92,fs,bg);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return [t,w/180]; }
 function blobGeo(w,h,depth){ const r=Math.min(.22,h/2-.01), sh=new THREE.Shape(); sh.moveTo(-w/2+r,-h/2); sh.lineTo(w/2-r,-h/2); sh.quadraticCurveTo(w/2,-h/2,w/2,-h/2+r); sh.lineTo(w/2,h/2-r); sh.quadraticCurveTo(w/2,h/2,w/2-r,h/2);
   sh.lineTo(-w/2+r,h/2); sh.quadraticCurveTo(-w/2,h/2,-w/2,h/2-r); sh.lineTo(-w/2,-h/2+r); sh.quadraticCurveTo(-w/2,-h/2,-w/2+r,-h/2);
   const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,curveSegments:8}); g.translate(0,0,-depth/2); return g; }
 function gateFace(g,k,side,py=.37){ const colHex=AREA_COLOR[k]||'#ea8d2d', col=new THREE.MeshStandardMaterial({color:colHex,roughness:.7}), BW=3.4, BH=.92, by=2.75, ry=side>0?0:Math.PI;
   const board=new THREE.Mesh(blobGeo(BW,BH,.06),col); board.position.set(0,by,side*.075); g.add(board);
   const [tt,asp]=titleTex(k,colHex), th=.5, tw=Math.min(BW-.3,th*asp); const tp=new THREE.Mesh(new THREE.PlaneGeometry(tw,tw/asp),new THREE.MeshStandardMaterial({map:tt,roughness:.7})); tp.position.set(side*-.25,by-.02,side*.14); tp.rotation.y=ry; g.add(tp);
-  const [mu,ma]=decoTex(k), mh=1.1; const mascot=new THREE.Mesh(new THREE.PlaneGeometry(mh*ma,mh),new THREE.MeshStandardMaterial({map:mu,transparent:true,alphaTest:.45,roughness:.9})); mascot.position.set(side*(BW/2-.45),by+BH/2+mh/2-.28,side*.16); mascot.rotation.set(0,ry,side*-.08); g.add(mascot);
   [-1,1].forEach(sd=>(AREA_PLANT[k]||AREA_PLANT.入口廣場).forEach((u,i)=>{ const pl=new THREE.Mesh(new THREE.PlaneGeometry(.75,.75),new THREE.MeshStandardMaterial({map:plantTex(u),transparent:true,alphaTest:.4,side:THREE.DoubleSide})); pl.position.set(sd*((py>.5?1.62:1.38)+(i?.3:-.28)),py,side*(.16+i*.08)); pl.rotation.y=sd*.4+(i?Math.PI/2.4:0); g.add(pl); })); }
 // 每座橋中間一座「雙面」區牌（2026-11-15 作者）：站在 A 這邊看到的那面寫 B（要去的地方），站在 B 那邊看到的那面寫 A；不會連續看到兩塊牌子
 function starGeo(r1,r2,d){ const sh=new THREE.Shape(); for(let i=0;i<10;i++){ const a=i/10*Math.PI*2+Math.PI/2, r=i%2?r2:r1; const x=Math.cos(a)*r, y=Math.sin(a)*r; if(i) sh.lineTo(x,y); else sh.moveTo(x,y); } sh.closePath(); const g=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2}); g.translate(0,0,-d/2); return g; }
@@ -1161,7 +1127,7 @@ function makeGate(B){ const x=(B.s.x+B.e.x)/2, z=(B.s.z+B.e.z)/2, yaw=Math.atan2
   gateFace(g,B.b,1); gateFace(g,B.a,-1); }
 function arcSignTex(text,bg){ const c=document.createElement('canvas'); c.width=1200; c.height=170; const q=c.getContext('2d'); q.fillStyle=bg; q.fillRect(0,0,1200,170);
   q.fillStyle='rgba(255,255,255,.9)'; [70,1130].forEach(x=>{ q.beginPath(); q.arc(x,85,16,0,7); q.fill(); });   // 兩端的小圓點（像燈泡）
-  q.font='900 104px "Noto Sans TC",sans-serif'; q.textAlign='center'; q.textBaseline='middle'; q.lineJoin='round'; q.lineWidth=14; q.strokeStyle='rgba(0,0,0,.18)'; q.strokeText(text,600,92); q.fillStyle='#ffffff'; q.fillText(text,600,90);
+  bounceText(q,text,600,90,96,bg);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; }
 // 合併的島：兩區中間的分隔島上立一座雙面圓拱門招牌（照 作者 手繪：兩個小草坡上的拱門，上面招牌＋樹叢＋星星，粗體字貼紙，旁邊一棵小樹）
 function makeArch(x,z,yaw,front,back){ const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=yaw; scene.add(g); FADERS.push(g);
@@ -1183,9 +1149,7 @@ function makeArch(x,z,yaw,front,back){ const g=new THREE.Group(); g.position.set
     for(let i=0;i<=n;i++){ const f=i/n, an=A0+(A1-A0)*f; [[R1,0],[R2,1]].forEach(([r,v])=>{ pos.push(Math.cos(an)*r,Math.sin(an)*r,0); uv.push(1-f,v); }); }
     for(let i=0;i<n;i++){ const k=i*2; idx.push(k,k+1,k+2,k+1,k+3,k+2); }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals();
-    const face=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:arcSignTex(name,col),roughness:.7,side:THREE.DoubleSide})); face.position.set(0,CY,side*.135); if(side<0) face.rotation.y=Math.PI; g.add(face);
-    const [mu,ma]=decoTex(name), mh=1.0; const mascot=new THREE.Mesh(new THREE.PlaneGeometry(mh*ma,mh),new THREE.MeshStandardMaterial({map:mu,transparent:true,alphaTest:.45,roughness:.9}));
-    mascot.position.set(side*2.15,CY+2.55,side*.24); mascot.rotation.set(0,side>0?0:Math.PI,side*-.12); g.add(mascot); });   /* 粗體字貼紙在弧形招牌右上 */
+    const face=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:arcSignTex(name,col),roughness:.7,side:THREE.DoubleSide})); face.position.set(0,CY,side*.135); if(side<0) face.rotation.y=Math.PI; g.add(face); });
   [[-2.62,1.55,.32],[-2.35,2.1,.26],[2.62,1.5,.3],[2.3,2.05,.24]].forEach(([bx,by,br])=>{ const b=new THREE.Mesh(new THREE.IcosahedronGeometry(br,1),bushM); b.position.set(bx,by,0); b.scale.z=.7; b.castShadow=true; g.add(b); });   /* 招牌兩端的樹叢 */
   const star=new THREE.Mesh(starGeo(.3,.14,.08),std('#f6c43a')); star.position.set(-1.45,CY+3.0,0); star.rotation.z=.3; g.add(star);
   { const tr=new THREE.Group(); tr.position.set(1.95,.45,-.05); g.add(tr); const tk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,1.1,8),std('#8a5a3a')); tk.position.y=.55; tk.castShadow=true; tr.add(tk);
@@ -1198,7 +1162,7 @@ Object.entries(ISLANDS).filter(([k,I])=>I.soon).flatMap(([k,I])=>I.zones?I.zones
   const board=new THREE.Mesh(rboxGeo(3.1,1.45,.12,.12),std('#fffaf0')); board.position.y=1.95; board.castShadow=true; g.add(board);
   const [t,asp]=bigSignTex(k,col); [1,-1].forEach(sd=>{ const tp=new THREE.Mesh(new THREE.PlaneGeometry(2.7,2.7/asp),new THREE.MeshBasicMaterial({map:t,transparent:true})); tp.position.set(0,2.15,sd*.07); tp.rotation.y=sd>0?0:Math.PI; g.add(tp);
     const st=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.34),new THREE.MeshBasicMaterial({map:signTex('即將開放','#fffaf0',col,320,72)})); st.position.set(0,1.5,sd*.07); st.rotation.y=sd>0?0:Math.PI; g.add(st); });
-  const [mu,ma]=decoTex(k); const m=new THREE.Mesh(new THREE.PlaneGeometry(1.0*ma,1.0),new THREE.MeshStandardMaterial({map:mu,transparent:true,alphaTest:.45,side:THREE.DoubleSide})); m.position.set(1.3,2.85,.12); m.rotation.z=-.08; g.add(m); });
+});
 // 動物主題小屋（之後做成室內空間：門口→Loading→室內）：牧場小屋（紅色穀倉）、雨林樹屋（高腳屋）、爬蟲館（圓頂溫室）
 const HUTS=[];
 Object.entries(ISLANDS).filter(([k,I])=>I.hut).forEach(([k,I])=>{ const S=I.sect, ad=S.am*180/Math.PI, P=ringAt(ad-11,22.1), yaw=Math.atan2(CENTER.x-P.x,CENTER.z-P.z), g=new THREE.Group();   /* 小屋放島的一側，中軸留給走道 */ g.position.set(P.x,0,P.z); g.rotation.y=yaw; scene.add(g); FADERS.push(g);
@@ -2192,11 +2156,11 @@ function openLive(k){ const L=LIVE[k]; if(!L) return; document.getElementById('l
 function closeLive(){ document.getElementById('livebox').classList.remove('show'); document.getElementById('liveFrame').src='about:blank'; }
 document.getElementById('liveClose').onclick=closeLive; document.getElementById('livebox').addEventListener('click',e=>{ if(e.target.id==='livebox') closeLive(); });
 function openAreaRead(k){ const R=AREA_READS[k]; if(!R) return; const first=!done.area.has(k);
-  const body=R.secs?`${R.photo?`<figure class="rd-photo"><img src="${R.photo}" alt="${R.photoCap||''}"><figcaption>${R.photoCap||''}</figcaption></figure>`:''}<div class="rd-secs">${R.secs.map(([ic,h,t])=>`<div class="rd-sec"><span class="rd-ic">${ic}</span><div><b>${h}</b><p>${t}</p></div></div>`).join('')}</div>
+  const body=R.secs?`${R.photo?`<figure class="rd-photo"><img src="${R.photo}" alt="${R.photoCap||''}"><figcaption>${R.photoCap||''}${R.photoSrc?`<small style="display:block;font-size:11px;opacity:.8">${R.photoSrc}</small>`:''}</figcaption></figure>`:''}<div class="rd-secs">${R.secs.map(([ic,h,t])=>`<div class="rd-sec"><span class="rd-ic">${ic}</span><div><b>${h}</b><p>${t}</p></div></div>`).join('')}</div>
       ${R.tip?`<div class="rd-tip"><b>🧑‍🌾 保育員偷偷說</b><p>${R.tip}</p></div>`:''}
       ${R.dos?`<div class="rd-dos">${R.note?`<p>${R.note}</p>`:''}${R.dos.map(([m,t])=>`<div class="${m==='✅'?'ok':'no'}">${m} ${t}</div>`).join('')}</div>`:''}
       ${R.cta?`<p class="rd-cta">${R.cta}</p>`:''}`:`<p>${R.p.replace(/\n/g,'<br>')}</p>`;
-  mbox.innerHTML=`<div class="rd" style="--c:${R.color||'#4f7d44'}"><div class="rd-head">${AREA_DECO[k]?`<span class="rd-deco">${AREA_DECO[k][0]}</span>`:''}<div><h4>${R.t}</h4>${R.sub?`<small>${R.sub}</small>`:''}</div></div>
+  mbox.innerHTML=`<div class="rd" style="--c:${R.color||'#4f7d44'}"><div class="rd-head"><div><h4>${R.t}</h4>${R.sub?`<small>${R.sub}</small>`:''}</div></div>
     <div class="rd-body">${body}</div><div class="rd-foot"><button id="mOk">${first?`看完了（+${CFG.讀科普獎金} 元）`:'關閉'}</button><span class="note">粉絲整理・非官方資料</span></div></div>`; modal.classList.add('show'); mbox.classList.add('wide');
   document.getElementById('mOk').onclick=()=>{ closeModal(); if(!first) return; done.area.add(k); inv.money+=CFG.讀科普獎金; addScore(CFG.讀科普分數); drawHud(); toast(`看完${R.t}，+${CFG.讀科普獎金} 元、+${CFG.讀科普分數} 分`);
     if(quizOpen()) toastLater('兩個展區都逛完了！新任務：小測驗開放囉（左上角、互動選單有紅點）'); drawQuest(); }; }
@@ -2465,7 +2429,7 @@ addEventListener('resize',resize); resize();
 const clock=new THREE.Clock(); let hudT=0, lastIndoor=false, nearTrash=false;
 let ldFrames=0;
 // 換場景用（之後的室內空間：遊客中心、保育員工作區…）：先蓋上 Loading，顯示標題和簡單介紹，準備好再打開
-function sceneLoading(title,intro,work,ms=1200){ const l=document.getElementById('loader'); document.getElementById('ldTitle').textContent=title; document.getElementById('ldMsg').textContent=intro; document.getElementById('ldTip').textContent='';
+function sceneLoading(title,intro,work,ms=1200){ const l=document.getElementById('loader'); document.getElementById('ldTitle').textContent=title; document.getElementById('ldMsg').textContent=intro; document.getElementById('ldTip').textContent=''; document.getElementById('ldGo').hidden=true;
   l.style.display='grid'; l.classList.remove('out'); window.__ldProgress&&window.__ldProgress(0); const f=document.getElementById('ldFill'); f.style.width='0'; setTimeout(()=>{ f.style.width='100%'; document.getElementById('ldPct').textContent='100%'; },60);
   setTimeout(()=>{ try{ work&&work(); }catch(_){} l.classList.add('out'); setTimeout(()=>{ l.style.display='none'; },700); },ms); }
 let perfT=0, perfN=0, perfS=0;
