@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120224823';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120225216';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1315,7 +1315,15 @@ Object.entries(ISLANDS).filter(([k,I])=>I.hut).forEach(([k,I])=>{ const S=I.sect
   } else if(I.hut==='tree'){ title='雨林樹屋'; ground=1.0; const wood=patM('#9a6a40','plank'), dark=std('#6f4a2c'), leaf=patM('#5aa652','leaf',7,2.2,{roughness:.95,flatShading:true});   /* 木板＋葉子鋪的屋頂 */
     [[-1.6,-1],[1.6,-1],[-1.6,1],[1.6,1]].forEach(([x,z])=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,1.0,8),dark); p.position.set(x,.5,z); p.castShadow=true; g.add(p); });
     box(W-.2,.16,D,wood,0,1.05,0,g); box(3.3,1.6,D-.6,patM('#c99766','plank'),0,1.93,-.1,g); box(.9,1.2,.06,patM('#6f4a2c','vplank',1.4,1.4),0,1.75,front-.38,g);
-    const roof=new THREE.Mesh(new THREE.ConeGeometry(2.9,1.4,4),leaf); roof.rotation.y=Math.PI/4; roof.position.y=3.4; roof.scale.z=.75; roof.castShadow=true; g.add(roof);
+    /* 葉子屋頂（2026-11-20 作者：平面葉子貼圖太密集看了不舒服）→ 改成一排一層的 3D 大葉子，像茅草屋一層層蓋上去 */
+    { const core=new THREE.Mesh(new THREE.ConeGeometry(1.95,1.4,24),std('#3f7f3a')); core.scale.z=.76; core.position.y=3.4; core.castShadow=true; g.add(core);   /* 裡面一層深綠底，葉子之間不會透光 */
+      const leafG=new THREE.SphereGeometry(1,12,8).scale(.28,.055,.52).translate(0,0,.42).rotateX(.62), dummy=new THREE.Object3D(), rows=[];
+      const tones=['#4f9f48','#62b553','#57aa4d','#6fc25c','#79c964'];
+      for(let r=0;r<5;r++){ const t=r/5, rx=2.15*(1-t*.86), rz=1.64*(1-t*.86), y=2.9+t*1.24, per=2*Math.PI*Math.sqrt((rx*rx+rz*rz)/2), n=Math.max(6,Math.ceil(per/.4));
+        for(let k=0;k<n;k++){ const a=(k+(r%2)*.5)/n*Math.PI*2, px=Math.sin(a)*rx*.9, pz=Math.cos(a)*rz*.9; rows.push([r,px,y,pz,Math.atan2(px/rx,pz/rz),.95-t*.25]); } }
+      tones.forEach((col,r)=>{ const list=rows.filter(q=>q[0]===r); const im=new THREE.InstancedMesh(leafG,new THREE.MeshStandardMaterial({color:col,roughness:.75}),list.length); list.forEach(([,px,y,pz,ry,s],i)=>{ dummy.position.set(px,y,pz); dummy.rotation.set(0,ry,0); dummy.scale.setScalar(s); dummy.updateMatrix(); im.setMatrixAt(i,dummy.matrix); }); im.castShadow=true; g.add(im); });
+      const tuft=new THREE.Mesh(new THREE.SphereGeometry(.3,14,10),new THREE.MeshStandardMaterial({color:'#79c964',roughness:.75})); tuft.scale.set(1,.7,1); tuft.position.y=4.18; g.add(tuft);
+      for(let k=0;k<5;k++){ const lf=new THREE.Mesh(leafG,new THREE.MeshStandardMaterial({color:'#86d26a',roughness:.75})); lf.position.set(0,4.2,0); lf.rotation.order='YXZ'; lf.rotation.set(-1.0,k/5*Math.PI*2,0); lf.scale.setScalar(.55); g.add(lf); } }   /* 頂端一小撮往上翹的葉子 */
     for(let i=0;i<5;i++){ const st=new THREE.Mesh(rboxGeo(1.0,.08,.32,.03),wood); st.position.set(0,.18+i*.19,front+.25+(4-i)*.28); g.add(st); }   /* 前面的階梯 */
   } else { title='爬蟲館'; const base=patM('#86ad9f','stone',10,1.4), trim=std('#fffaf0');   /* 圓角石塊牆 */
     const wall=new THREE.Mesh(new THREE.CylinderGeometry(2.0,2.05,1.3,28),base); wall.position.y=.65; wall.castShadow=true; g.add(wall);
