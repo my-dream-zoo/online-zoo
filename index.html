@@ -47,6 +47,11 @@
   #ctx{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);display:flex;gap:8px;z-index:12;flex-wrap:wrap;justify-content:center;width:max-content;max-width:94%}
   #ctx button{border:0;border-radius:999px;padding:10px 16px;font-size:14px;background:#c9853a;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.2);display:flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit;white-space:nowrap;touch-action:manipulation}
   #ctx button svg{width:18px;height:18px}
+  /* 食物飲料剩多少：按鈕上的直式電量條（2026-11-17 清單第 7 項） */
+  #ctx .meter{display:inline-block;position:relative;width:10px;height:20px;margin-left:4px;border:2px solid #fff;border-radius:4px;background:rgba(255,255,255,.22)}
+  #ctx .meter::before{content:'';position:absolute;left:50%;top:-5px;width:5px;height:3px;margin-left:-2.5px;background:#fff;border-radius:2px 2px 0 0}
+  #ctx .meter i{position:absolute;left:1px;right:1px;bottom:1px;max-height:calc(100% - 2px);background:#fff;border-radius:2px;transition:height .25s}
+  #ctx .meter.low i{background:#ffd7c2}
   #sideBtns{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:12} #sideBtns .rb{width:46px;height:46px} #sideBtns .rb span{display:none} #sideBtns .rb svg{width:24px;height:24px}   /* 右上一排只留圖示 */
   #miniMap{width:96px;height:96px;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.22);cursor:pointer;touch-action:manipulation;background:#bfe0ea}   /* 小地圖：右上按鈕下面，北方朝上 */
   #timeBar{position:absolute;right:72px;top:72px;z-index:12;display:none} #timeBar.open{display:flex}
@@ -304,7 +309,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120213207';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120214556';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -494,7 +499,7 @@ function box(w,h,d,mat,x,y,z,parent){ const m=new THREE.Mesh(rboxGeo(w,h,d),mat)
 // 大量重複的東西（矮牆、樹、花台、荷葉…）用 InstancedMesh 一次畫，手機才跑得動
 const INST={};
 function inst(key,geo,mat,mtx,shadow=true){ const e=(INST[key]??={geo,mat,list:[],shadow}); e.list.push(mtx); const i=e.list.length-1; if(e.mesh&&i<e.mesh.count){ e.mesh.setMatrixAt(i,mtx); e.mesh.instanceMatrix.needsUpdate=true; } return i; }
-function flushInst(){ for(const k in INST){ const {geo,mat,list,shadow}=INST[k]; if(!list.length) continue; const spare=k.startsWith('st_')?60:0, im=new THREE.InstancedMesh(geo,mat,list.length+spare); list.forEach((m,i)=>im.setMatrixAt(i,m)); if(spare){ const Z=new THREE.Matrix4().makeScale(0,0,0); for(let i=list.length;i<list.length+spare;i++) im.setMatrixAt(i,Z); im.frustumCulled=false; }   /* 行道樹多留 60 個空位給複製的樹 */ im.castShadow=shadow; im.receiveShadow=true; scene.add(im); INST[k].mesh=im; } }
+function flushInst(){ for(const k in INST){ const {geo,mat,list,shadow}=INST[k]; const spare=k.startsWith('st_')?60:(k.startsWith('q_')||k.startsWith('crown')||k==='trunk')?40:0; if(!list.length&&!spare) continue; const im=new THREE.InstancedMesh(geo,mat,list.length+spare); list.forEach((m,i)=>im.setMatrixAt(i,m)); if(spare){ const Z=new THREE.Matrix4().makeScale(0,0,0); for(let i=list.length;i<list.length+spare;i++) im.setMatrixAt(i,Z); im.frustumCulled=false; }   /* 行道樹多留 60 個空位給複製的樹 */ im.castShadow=shadow; im.receiveShadow=true; scene.add(im); INST[k].mesh=im; } }
 const M4=(x,y,z,ry=0,sx=1,sy=sx,sz=sx)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),new THREE.Vector3(sx,sy,sz));
 // 地磚、紅磚步道的貼圖
 function tileTex(base,line,n=8,rep=1){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,256,256); const t=256/n;
@@ -504,23 +509,52 @@ function tileTex(base,line,n=8,rep=1){ const c=document.createElement('canvas');
 function brickTex(rep){ const c=document.createElement('canvas'); c.width=256; c.height=256; const g=c.getContext('2d'); g.fillStyle='#f0dcc2'; g.fillRect(0,0,256,256); const bw=64, bh=32;
   for(let r=0;r<8;r++) for(let k=-1;k<5;k++){ const x=k*bw+(r%2)*bw/2, y=r*bh; g.fillStyle=['#d9785a','#cf6d50','#e08766','#d47457'][(r*7+k*3+8)%4]; g.fillRect(x+2,y+2,bw-4,bh-4); }
   const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace; tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.repeat.set(rep,rep); tx.anisotropy=4; return tx; }
-// 低多邊形圓樹＋圓角花盆
+// Q 版植物（2026-11-20 作者 參考圖：圓潤軟萌的卡通植物）：泡泡樹冠、椰子樹、仙人掌、松樹、繽紛顏色樹；用幾種基本零件組合，同樣的零件用 InstancedMesh 一次畫
 const TREE_GEO={ pot:new THREE.LatheGeometry([[0,0],[.25,0],[.29,.04],[.31,.34],[.35,.37],[.35,.42],[.29,.42],[0,.4]].map(([x,y])=>new THREE.Vector2(x,y)),18),
-  soil:new THREE.CircleGeometry(.29,16).rotateX(-Math.PI/2), trunk:new THREE.CylinderGeometry(.045,.075,.8,6), crown:new THREE.IcosahedronGeometry(.55,1) };
-const TREE_MAT={ pot:new THREE.MeshStandardMaterial({color:'#ec9f7b',roughness:.9}), soil:std('#7a5a3a'), trunk:std('#8a6040'),
-  y:new THREE.MeshStandardMaterial({color:'#f2c84b',roughness:.95,flatShading:true}), a:new THREE.MeshStandardMaterial({color:'#86bd66',roughness:.95,flatShading:true}), b:new THREE.MeshStandardMaterial({color:'#a3cf7c',roughness:.95,flatShading:true}), c:new THREE.MeshStandardMaterial({color:'#6fae5a',roughness:.95,flatShading:true}) };
+  soil:new THREE.CircleGeometry(.29,16).rotateX(-Math.PI/2), trunk:new THREE.CylinderGeometry(.05,.085,.8,8), crown:new THREE.SphereGeometry(.55,16,12),   /* 樹冠改圓滑的泡泡球 */
+  palmSeg:new THREE.CylinderGeometry(.085,.105,.3,9), leaf:new THREE.SphereGeometry(1,12,6).scale(.15,.035,.62).translate(0,0,.6).rotateX(.5), nut:new THREE.SphereGeometry(.085,10,8),
+  cactus:new THREE.CapsuleGeometry(.2,.7,6,14), arm:new THREE.CapsuleGeometry(.1,.26,4,10), flower:new THREE.SphereGeometry(.07,10,8), cone:new THREE.ConeGeometry(.55,.75,16) };
+const TREE_MAT={ pot:new THREE.MeshStandardMaterial({color:'#ec9f7b',roughness:.9}), soil:std('#7a5a3a'), trunk:std('#9a6844'),
+  y:new THREE.MeshStandardMaterial({color:'#f6c945',roughness:.75}), a:new THREE.MeshStandardMaterial({color:'#7fcf5c',roughness:.75}), b:new THREE.MeshStandardMaterial({color:'#a8de6a',roughness:.75}), c:new THREE.MeshStandardMaterial({color:'#5dbb5a',roughness:.75}),
+  p:new THREE.MeshStandardMaterial({color:'#f59bbd',roughness:.75}), o:new THREE.MeshStandardMaterial({color:'#ffa94d',roughness:.75}), t:new THREE.MeshStandardMaterial({color:'#5fd3c4',roughness:.75}),   /* 繽紛顏色樹：粉紅、橘、湖水綠 */
+  palm:std('#c08a55'), leaf:new THREE.MeshStandardMaterial({color:'#62c652',roughness:.7}), nut:new THREE.MeshStandardMaterial({color:'#f3cc45',roughness:.6}),
+  cactus:new THREE.MeshStandardMaterial({color:'#58b85a',roughness:.7}), flower:new THREE.MeshStandardMaterial({color:'#ff7fae',roughness:.6}), pine:new THREE.MeshStandardMaterial({color:'#3fa86e',roughness:.75}), pine2:new THREE.MeshStandardMaterial({color:'#5cc289',roughness:.75}) };
+
 const TREES=[];
 const KEEP_CLEAR=[]; const HILLS=[];   // 可以走上去的小山丘
 function groundY(x,z){ let y=0; for(const H of HILLS){ const dx=x-H.x, dz=z-H.z, lx=dx*H.c-dz*H.s, lz=dx*H.s+dz*H.c, u=lx/H.a, v=lz/H.b, q=1-u*u-v*v; if(q>0) y=Math.max(y,H.h*Math.sqrt(q)-.02); } return y; }   // 要留給人走的通道：[x,z,半徑]，樹、灌木、花都不放
 const CLIMB=[];   // 獼猴可以爬上爬下的地方：路燈、樹、電視機佈景頂
-function tree(x,z,sc=1,pot=true,yellow=0){ const y0=pot?.4*sc:0, _cl=CLIMB.push({x,z,top:y0+1.05*sc+.45*sc,r:pot?.42*sc:.16,kind:'tree'}), k=Math.random()<yellow?'y':'abc'[Math.floor(Math.random()*3)], parts=[]; const I0=inst; const inst2=(key,g,m,mtx,sh)=>{ parts.push({key,i:I0(key,g,m,mtx,sh),m:mtx}); };
+function tree(x,z,sc=1,pot=true,yellow=0){ const parts=[]; const I0=inst; const inst2=(key,g,m,mtx,sh)=>{ parts.push({key,i:I0(key,g,m,mtx,sh),m:mtx}); };
+  const isl=pot?'':(islandOf(x,z)||''), rr=Math.random(), RY=Math.random()*6;
+  const kind=pot?'bubble':isl==='狐獴島'&&rr<.7?'cactus':(isl==='雨林島'||isl==='水邊島')&&rr<.8?'palm':(isl==='台灣原生島'&&rr<.6)||(isl==='孟加拉虎島'&&rr<.3)?'pine':'bubble';   /* 依島的主題換植物 */
+  const y0=pot?.4*sc:0; let top=y0+1.5*sc, rad=pot?.36*sc:.16;
   if(pot){ inst2('pot',TREE_GEO.pot,TREE_MAT.pot,M4(x,0,z,0,sc)); inst2('soil',TREE_GEO.soil,TREE_MAT.soil,M4(x,.39*sc,z,0,sc),false); }
-  inst2('trunk',TREE_GEO.trunk,TREE_MAT.trunk,M4(x,y0+.4*sc,z,0,sc));
-  inst2('crown'+k,TREE_GEO.crown,TREE_MAT[k],M4(x,y0+1.05*sc,z,Math.random()*6,sc*(.95+Math.random()*.2),sc*(.85+Math.random()*.2)));
-  if(Math.random()<.6){ const k2='abc'[Math.floor(Math.random()*3)], a=Math.random()*6; inst2('crown'+k2,TREE_GEO.crown,TREE_MAT[k2],M4(x+Math.sin(a)*.22*sc,y0+1.45*sc,z+Math.cos(a)*.22*sc,a,sc*.6)); }
-  const st={x,z,r:pot?.36*sc:.16}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc}); }
+  if(kind==='palm'){   /* 椰子樹：一節一節往旁邊彎的樹幹＋往下垂的大葉子＋黃色椰子 */
+    const lean=(Math.random()-.5)*.5, la=Math.random()*6; let px=x, pz=z;
+    for(let i=0;i<6;i++){ const t=i/5; px=x+Math.sin(la)*lean*t*t*sc; pz=z+Math.cos(la)*lean*t*t*sc; inst2('q_palm',TREE_GEO.palmSeg,TREE_MAT.palm,M4(px,(.15+i*.27)*sc,pz,i*.7,sc*(1-.06*i),sc,sc*(1-.06*i))); }
+    const ty=(.15+5*.27+.12)*sc; for(let k=0;k<8;k++){ const m=new THREE.Matrix4().compose(new THREE.Vector3(px,ty,pz),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,k/8*Math.PI*2+RY,0)),new THREE.Vector3(sc*1.05,sc,sc*1.05)); inst2('q_leaf',TREE_GEO.leaf,TREE_MAT.leaf,m); }
+    for(let k=0;k<3;k++){ const a=k*2.1+RY; inst2('q_nut',TREE_GEO.nut,TREE_MAT.nut,M4(px+Math.sin(a)*.09*sc,ty-.1*sc,pz+Math.cos(a)*.09*sc,0,sc)); }
+    top=ty; rad=.16; }
+  else if(kind==='cactus'){   /* 仙人掌：圓滾滾的身體＋兩隻手＋頭頂一朵粉紅花 */
+    const s=sc*.8; inst2('q_cactus',TREE_GEO.cactus,TREE_MAT.cactus,M4(x,.55*s,z,RY,s));
+    [[0,.42],[2.3,.62]].forEach(([da,y])=>{ const ax=Math.cos(RY+da), az=-Math.sin(RY+da); inst2('q_arm',TREE_GEO.arm,TREE_MAT.cactus,M4(x+ax*.44*s,(y+.2)*s,z+az*.44*s,RY,s)); inst2('q_arm',TREE_GEO.arm,TREE_MAT.cactus,new THREE.Matrix4().compose(new THREE.Vector3(x+ax*.3*s,y*s,z+az*.3*s),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,RY+da,Math.PI/2)),new THREE.Vector3(s*.95,s*.55,s*.95))); });   /* 手往外伸、再往上彎；兩隻手不同方向，從哪邊看都看得到 */
+    inst2('q_flower',TREE_GEO.flower,TREE_MAT.flower,M4(x,1.12*s,z,0,s*1.2)); top=1.1*s; rad=.3*s; }
+  else if(kind==='pine'){   /* Q 版松樹：三層圓圓的錐形 */
+    inst2('trunk',TREE_GEO.trunk,TREE_MAT.trunk,M4(x,.3*sc,z,0,sc,.75*sc,sc));
+    [[.55,1],[.95,.8],[1.3,.6]].forEach(([y,s],i)=>inst2(i%2?'q_pine2':'q_pine',TREE_GEO.cone,i%2?TREE_MAT.pine2:TREE_MAT.pine,M4(x,y*sc,z,RY+i,sc*s))); top=1.6*sc; }
+  else {   /* 泡泡樹：一顆大泡泡＋幾顆小泡泡；兒童牧場島用繽紛顏色 */
+    const pal=isl==='兒童牧場島'?'pot':'abc', k=Math.random()<yellow?'y':pal[Math.floor(Math.random()*3)], k2=()=>Math.random()<.7?k:pal[Math.floor(Math.random()*3)];
+    inst2('trunk',TREE_GEO.trunk,TREE_MAT.trunk,M4(x,y0+.4*sc,z,0,sc));
+    inst2('crown'+k,TREE_GEO.crown,TREE_MAT[k],M4(x,y0+1.05*sc,z,RY,sc*(.95+Math.random()*.15),sc*(.88+Math.random()*.15)));
+    const nb=1+Math.floor(Math.random()*3); for(let j=0;j<nb;j++){ const a=RY+j*2.2, kk=k2(); inst2('crown'+kk,TREE_GEO.crown,TREE_MAT[kk],M4(x+Math.sin(a)*.32*sc,y0+(1.2+Math.random()*.25)*sc,z+Math.cos(a)*.32*sc,a,sc*(.5+Math.random()*.15))); } }
+  CLIMB.push({x,z,top,r:pot?.42*sc:.16,kind:'tree'});
+
+
+
+
+  const st={x,z,r:Math.max(rad,pot?.36*sc:.16)}; STATIC.push(st); TREES.push({x,z,parts,f:1,st,sc}); }
 // 行道樹（2026-11-17 作者：取代廣場上的盆栽樹）：地上一小塊草地、周圍一圈石緣，細樹幹＋雲朵形樹冠；園方可以搬、轉、複製
-const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.08,1.3,6), crown:new THREE.IcosahedronGeometry(.5,1) };
+const ST_GEO={ curb:new THREE.LatheGeometry([[.6,0],[.76,0],[.76,.13],[.73,.16],[.63,.16],[.6,.13],[.6,0]].map(([x,y])=>new THREE.Vector2(x,y)),12), grass:new THREE.CircleGeometry(.61,16).rotateX(-Math.PI/2), tuft:new THREE.ConeGeometry(.05,.2,4), trunk:new THREE.CylinderGeometry(.05,.085,1.3,8), crown:new THREE.SphereGeometry(.5,16,12) };   /* 行道樹也改圓滑泡泡樹冠 */
 const ST_MAT={ curb:new THREE.MeshStandardMaterial({color:'#d8cdb8',roughness:.95,flatShading:true}), grass:std('#8cc46a'), tuft:new THREE.MeshStandardMaterial({color:'#5f9e45',roughness:1,flatShading:true}) };
 function streetTree(x,z,sc=1.35,yellow=.35){ const k=Math.random()<yellow?'y':'abc'[Math.floor(Math.random()*3)], L=[];
   const add=(key,geo,mat,lx,ly,lz,ry,sx,sy=sx,sz=sx,sh=true)=>L.push({key,geo,mat,sh,L:M4(lx*sc,ly*sc,lz*sc,ry,sx*sc,sy*sc,sz*sc)});
@@ -1004,7 +1038,7 @@ function makeStage(islandKey,kind,title){ const I=ISLANDS[islandKey], dx=I.x-CEN
   STATIC.push({x:hx,z:hzW,hw:(HW+.35)*STAGE_SS,hd:(HD+.3)*STAGE_SS,yaw:th});
   // ===== 展場造景（2026-11-16 作者 確認 2D 草案）：軟邊界做成小山丘，前面花叢、中間灌木、後面樹；狐獴＝沙漠感、老虎＝森林竹林 =====
   { const TH=kind==='meerkat'?{hill:'#c3cf86',bush:'#8fa65a',flw:['#f5cf4a','#f2a03b','#fbe27a'],crown:'#93b860',bamboo:false}:{hill:'#8cc46a',bush:'#4f8a3e',flw:['#f6b6c8','#ffffff','#f08fa8'],crown:'#5f9a4a',bamboo:true};
-    const hillM=new THREE.MeshStandardMaterial({color:TH.hill,roughness:.95,flatShading:true}), bushM=new THREE.MeshStandardMaterial({color:TH.bush,roughness:.95,flatShading:true}), crownM=new THREE.MeshStandardMaterial({color:TH.crown,roughness:.95,flatShading:true}), trunkM=std('#8a5a3a'), flwM=TH.flw.map(c=>std(c)), stoneM=std('#d9cfbd'), bambooM=std('#7cae4e'), nodeM=std('#5f8f3c'), wallM=std('#efe2c8');
+    const hillM=new THREE.MeshStandardMaterial({color:TH.hill,roughness:.95,flatShading:true}), bushM=new THREE.MeshStandardMaterial({color:TH.bush,roughness:.8}), crownM=new THREE.MeshStandardMaterial({color:TH.crown,roughness:.95}), trunkM=std('#8a5a3a'), flwM=TH.flw.map(c=>std(c)), stoneM=std('#d9cfbd'), bambooM=std('#7cae4e'), nodeM=std('#5f8f3c'), wallM=std('#efe2c8');
     const okAt=(f,l,rf,rl)=>[[f,l],[f+rf,l],[f-rf,l],[f,l+rl],[f,l-rl]].every(([a,b])=>{ const [x,z]=at(a,b); return insideBy(I,x,z,1.3); })&&(()=>{ const [x,z]=at(f,l); return !KEEP_CLEAR.some(([cx,cz,cr])=>Math.hypot(x-cx,z-cz)<cr+Math.min(rf,rl)*STAGE_SS); })();
     const hill=(f,l,rf,rl,h,solid)=>{ let k=0; while(!okAt(f,l,rf,rl)&&k<8){ rf*=.88; rl*=.88; k++; } if(!okAt(f,l,rf,rl)||rf<.45) return null; const [x,z]=at(f,l);   /* 放不下就自動縮小，還是放不下就不放 */
       const m=new THREE.Mesh(new THREE.SphereGeometry(1,26,12,0,Math.PI*2,0,Math.PI/2),hillM); m.scale.set(rl*STAGE_SS,h,rf*STAGE_SS); m.position.set(x,-.02,z); m.rotation.y=th; m.castShadow=m.receiveShadow=true; scene.add(m);
@@ -1016,7 +1050,7 @@ function makeStage(islandKey,kind,title){ const I=ISLANDS[islandKey], dx=I.x-CEN
       else if(what==='bush'){ const bm=new THREE.Mesh(new THREE.IcosahedronGeometry(.45,1),bushM); bm.position.set(x,y+.2,z); bm.scale.set(1.25,.8,1.05); bm.castShadow=true; scene.add(bm); }
       else if(what==='tree'&&TH.bamboo){ for(let i=0;i<5;i++){ const hgt=1.8+Math.random()*1.2, c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,hgt,6),bambooM); c.position.set(x+(Math.random()-.5)*.5,y+hgt/2,z+(Math.random()-.5)*.5); c.rotation.z=(Math.random()-.5)*.12; c.castShadow=true; scene.add(c);
           const lf=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0),crownM); lf.position.set(c.position.x,y+hgt,c.position.z); lf.scale.set(1.4,.6,1.4); scene.add(lf); } }   /* 老虎島：竹叢 */
-      else if(what==='tree'){ const tk=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,1.3,7),trunkM); tk.position.set(x,y+.65,z); tk.castShadow=true; scene.add(tk); const cr=new THREE.Mesh(new THREE.IcosahedronGeometry(.75,1),crownM); cr.position.set(x,y+1.65,z); cr.scale.set(1,.85,1); cr.castShadow=true; scene.add(cr); }
+      else if(what==='tree'){ const tk=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,1.3,7),trunkM); tk.position.set(x,y+.65,z); tk.castShadow=true; scene.add(tk); const cr=new THREE.Mesh(new THREE.SphereGeometry(.75,16,12),crownM); cr.position.set(x,y+1.65,z); cr.scale.set(1,.85,1); cr.castShadow=true; scene.add(cr); }
       else if(what==='stone'){ const st=stoneMesh(); st.position.set(x,y+.01,z); scene.add(st); } };
     // ① 背景山丘：展場後面，擋住保育員後門、當展場背景
     const back=hill(-4.95,0,.85,5.2,.85,true); [-3.6,-1.2,1.2,3.6].forEach(l=>put(back,-5.0,l,'tree'));
@@ -1445,9 +1479,9 @@ makeVend=trackE('vend',makeVend,()=>[VENDS[VENDS.length-1]]);
       if(tile) streetTree(x,z,1.35,.35); else tree(x,z,1.8,false,.1); } }); }
 // 舞台兩側的庭園：小樹、開花灌木、踏腳石、草叢（放在大石頭和小水池之後，避開擋路的東西）
 function stageGardens(){ const hitS=(x,z,r)=>KEEP_CLEAR.some(([cx,cz,cr])=>Math.hypot(x-cx,z-cz)<cr+r)||STATIC.some(o=>distTo(o,x,z)<r);   /* 用實際的方框距離，展場石牆的四個角也算 */
-  const stoneG=new THREE.CylinderGeometry(.26,.28,.05,10), stoneM=std('#d9cfbd'), tuftG=new THREE.ConeGeometry(.07,.42,5), bushG=new THREE.IcosahedronGeometry(.32,1);
+  const stoneG=new THREE.CylinderGeometry(.26,.28,.05,10), stoneM=std('#d9cfbd'), tuftG=new THREE.ConeGeometry(.07,.42,5), bushG=new THREE.SphereGeometry(.32,14,10);
   Object.entries(STAGES).forEach(([k,S])=>{ const I=ISLANDS[k], fx=S.front.x-S.center.x, fz=S.front.z-S.center.z, fl=Math.hypot(fx,fz), Fx=fx/fl, Fz=fz/fl, Lx=Fz, Lz=-Fx, at=(lat,fwd)=>[S.center.x+Lx*lat+Fx*fwd, S.center.z+Lz*lat+Fz*fwd];
-    const leafM=new THREE.MeshStandardMaterial({color:k==='狐獴島'?'#9cc46c':'#6fae5a',roughness:.95,flatShading:true}), petals=(k==='狐獴島'?['#f5cf4a','#f2a03b','#fbe27a']:['#f6b6c8','#ffffff','#f08fa8']).map(std);
+    const leafM=new THREE.MeshStandardMaterial({color:k==='狐獴島'?'#9cc46c':'#6fae5a',roughness:.8}), petals=(k==='狐獴島'?['#f5cf4a','#f2a03b','#fbe27a']:['#f6b6c8','#ffffff','#f08fa8']).map(std);
     [-1,1].forEach(sd=>{
       [[5.3,-1.8,1.35],[5.7,.9,1.2]].forEach(([lat,fwd,sc])=>{ const [x,z]=at(sd*lat,fwd); if(!insideBy(I,x,z,1.4)||hitS(x,z,.6)) return; tree(x,z,sc,false,k==='狐獴島'?.5:.15); });
       [[4.3,2.3],[4.7,-.4],[3.9,-2.6],[5.2,2.4],[6.1,-.6]].forEach(([lat,fwd],i)=>{ const [x,z]=at(sd*lat,fwd); if(!insideBy(I,x,z,1.3)||hitS(x,z,.45)) return;
@@ -1493,7 +1527,7 @@ makeUmbrella=trackE('umb',makeUmbrella);
   umb(-17.7,5.4,'#e8745a'); umb(-18.1,.5,'#f2c14e');   // 遊客服務區：小賣店旁的戶外座位
   /* 入口廣場的黃花台：沿著島邊（大門兩側的矮牆內側）排，廣場中間留空地（2026-11-20 作者：裝飾物排島邊、不要擋路） */
   const EI=ISLANDS.入口廣場; [-48,-16,16,36].map(d=>{ const a=d*Math.PI/180, r=Math.min(9.4,islandR(EI,a)-1.0); return [EI.x+Math.sin(a)*r,EI.z+Math.cos(a)*r,a]; }).forEach(([x,z,a])=>{ const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=a; scene.add(g); FADERS.push(g); STATIC.push({x,z,r:.5}); box(1.0,.45,.6,new THREE.MeshStandardMaterial({color:'#f2e6cf',roughness:.9}),0,.22,0,g);
-    const bush=new THREE.Mesh(new THREE.IcosahedronGeometry(.36,1),new THREE.MeshStandardMaterial({color:'#93c972',roughness:.95,flatShading:true})); bush.scale.set(1.3,.7,.8); bush.position.y=.55; bush.castShadow=true; g.add(bush);
+    const bush=new THREE.Mesh(new THREE.SphereGeometry(.36,14,10),new THREE.MeshStandardMaterial({color:'#93c972',roughness:.8})); bush.scale.set(1.3,.7,.8); bush.position.y=.55; bush.castShadow=true; g.add(bush);
     for(let f=0;f<9;f++){ const fl=new THREE.Mesh(new THREE.SphereGeometry(.075,8,6),std(['#f5cf4a','#f2b93b','#fbe27a'][f%3])); fl.position.set((Math.random()-.5)*.8,.75,(Math.random()-.5)*.35); g.add(fl); } }); }
 // 戲水池的水花：走進池子濺一下，在水裡走路會一直有小水花＋漣漪
 const DROPS=[], RIPPLES=[];
@@ -1528,6 +1562,8 @@ function updateButterflies(dt){ const T=performance.now()/1000; for(const b of B
     const dx=nx-b.g.position.x, dz=nz-b.g.position.z; if(Math.abs(dx)+Math.abs(dz)>1e-4) b.g.rotation.y=Math.atan2(dx,dz); b.g.position.set(nx,ny,nz); const f=.25+Math.abs(Math.sin(T*16+b.ph))*1.1; b.L.rotation.z=f; b.R.rotation.z=-f; } }
 addButterfly(FORE.x0+.9,14.2,1.4,'#f5cf4a','#ffffff'); addButterfly(-3.2,6.8,1.1,'#ffffff','#f2a03b');
 Object.values(STAGES).forEach((S,i)=>{ const fx=S.front.x-S.center.x, fz=S.front.z-S.center.z, fl=Math.hypot(fx,fz), Fx=fx/fl, Fz=fz/fl; [-1,1].forEach((sd,j)=>{ const lat=sd*2.55; addButterfly(S.center.x+Fz*lat+Fx*2.5, S.center.z-Fx*lat+Fz*2.5, .9, [['#f2a03b','#ffffff'],['#9fd3f0','#ffffff'],['#f6b6c8','#ffffff'],['#fbe27a','#f2a03b']][(i*2+j)%4][0], '#ffffff'); }); });
+/* 之後才種的主題植物也要畫得出來：先把每種零件登記好（沒有也要留空位） */
+[['q_palm',TREE_GEO.palmSeg,TREE_MAT.palm],['q_leaf',TREE_GEO.leaf,TREE_MAT.leaf],['q_nut',TREE_GEO.nut,TREE_MAT.nut],['q_cactus',TREE_GEO.cactus,TREE_MAT.cactus],['q_arm',TREE_GEO.arm,TREE_MAT.cactus],['q_flower',TREE_GEO.flower,TREE_MAT.flower],['q_pine',TREE_GEO.cone,TREE_MAT.pine],['q_pine2',TREE_GEO.cone,TREE_MAT.pine2],['trunk',TREE_GEO.trunk,TREE_MAT.trunk],...'abcypot'.split('').map(c=>['crown'+c,TREE_GEO.crown,TREE_MAT[c]])].forEach(([key,geo,mat])=>{ INST[key]??={geo,mat,list:[],shadow:true}; });
 flushInst();
 // 浮動招牌：膠囊形大字牌，永遠轉向鏡頭；離遠一點會跟著放大，從一開始的視角就看得到
 const LABELS=[];
@@ -1690,8 +1726,8 @@ function setupUI2(){
     if(seatMode==='chair'&&curSeat&&curSeat.tv) L.push(['觀看直播','tv',()=>openLive(curSeat.tv)]);
     if(seatMode) L.push(['站起來','stop',()=>doAct('idle')]); else if(nearestSeat(2.2)) L.push(['坐下','seat',()=>doAct('sit')]);
     if(!inIndoor()&&near(PLACE.室內用餐區,4.4)&&(h==='drink'||h==='chips')) L.push(['進去用餐','home',()=>$('bIndoor').click()]);
-    const key=L.map(x=>x[0]).join('|'); if(key===ctxKey) return; ctxKey=key; const box=$('ctx'); box.innerHTML='';
-    L.slice(0,4).forEach(([t,ic,fn])=>{ const b=document.createElement('button'); b.innerHTML=UI_ICON[ic]+t; b.onclick=()=>{ fn(); ctxKey=null; }; box.appendChild(b); }); };
+    const key=L.map(x=>x[0]).join('|'); { const mt=$('ctx').querySelector('.meter'); if(mt){ const lv=foodLevel(); mt.firstChild.style.height=Math.round(lv*100)+'%'; mt.classList.toggle('low',lv<.3); } } if(key===ctxKey) return; ctxKey=key; const box=$('ctx'); box.innerHTML='';
+    L.slice(0,4).forEach(([t,ic,fn])=>{ const b=document.createElement('button'); b.innerHTML=UI_ICON[ic]+t+((ic==='cup'||ic==='chips')&&/一口/.test(t)?`<span class="meter"><i style="height:${Math.round(foodLevel()*100)}%"></i></span>`:''); b.onclick=()=>{ fn(); ctxKey=null; }; box.appendChild(b); }); };
   setInterval(()=>{ updateCtx(); drawQuest(); const qb=$('quizBtn'), on=quizOpen()&&quizLeft()>0; qb.style.display=on?'flex':'none'; qb.classList.toggle('dot',on); },250);   /* 有小測驗可以做才出現在背包上面 */
   $('quest').onclick=()=>{ if(quizLeft()) $('bQuiz').click(); else if(AREA_KEYS().some(k=>!done.area.has(k))) toast(`從入口廣場過橋到${AREA_KEYS().filter(k=>!done.area.has(k)).join('、')}，走到展場前的解說牌看一看`); else toast('任務都完成了，之後會再加新的'); };
 }
@@ -1781,6 +1817,12 @@ decorEntrances();
 Object.entries(ISLANDS).forEach(([k,I])=>{ if(!I.sect||STAGES[k]||k==='觀景台') return;
   const spots=I.zones?I.zones.map((Z,zi)=>[zi===0?Z.t1-9:Z.t0+11,I.sect.rm-1.8]):I.hut?[[I.sect.am*180/Math.PI+13,22.1]]:[[I.sect.am*180/Math.PI,I.sect.rm]];   /* 有小屋的島：放在小屋另一側；合併的島：每區一個 */
   spots.forEach(([t,r,side])=>{ const q=ringAt(t,r), [x,z]=freeS(q.x,q.z), tr=t*Math.PI/180; makeRestStop(x,z,side?Math.atan2(Math.cos(tr),Math.sin(tr)):Math.atan2(CENTER.x-x,CENTER.z-z),AREA_COLOR[k]||'#f2c14e'); }); });   /* side：轉成順著島的方向擺，不擋中軸 */   // 入口廣場（長椅旁）、入口前廣場（大門外右邊）
+/* 主題植物：休憩站、小屋都蓋好之後，在各島的空地補幾棵（雨林／水邊＝椰子樹、兒童牧場＝繽紛樹、台灣原生＝松樹），不會跟東西重疊（2026-11-20 清單第 29 項） */
+{ const want={雨林島:3,水邊島:3,兒童牧場島:3,台灣原生島:5};
+  for(const [k,n] of Object.entries(want)){ const I=ISLANDS[k], S=I&&I.sect; if(!S) continue; let put=0;
+    for(let tr=0;tr<500&&put<n;tr++){ const t=(S.am+(Math.random()-.5)*2*S.hw*.9)*180/Math.PI, r=S.rm+(Math.random()-.5)*2*Math.max(.5,S.h-1.2), q=ringAt(t,r), x=q.x, z=q.z;
+      if(regionAt(x,z)!==k||blocked(x,z,.8,STATIC)||KEEP_CLEAR.some(([cx,cz,cr])=>Math.hypot(x-cx,z-cz)<cr+.3)||BRIDGES.some(B=>Math.hypot(x-B.s.x,z-B.s.z)<3.2||Math.hypot(x-B.e.x,z-B.e.z)<3.2)) continue;
+      tree(x,z,1.6,false); put++; } if(location.search.includes('test')) (window.__garden??={})[k]=put; } resetGrid(); }
 Object.values(STAGES).forEach(S=>{ const fx=S.front.x-S.center.x, fz=S.front.z-S.center.z, fl=Math.hypot(fx,fz), Fx=fx/fl, Fz=fz/fl; addTrash(S.center.x+Fz*-4.9+Fx*5.3, S.center.z-Fx*-4.9+Fz*5.3, Math.atan2(Fx,Fz)); });   // 兩個展區：長椅旁
 const allTrash=()=>[{x:TRASH.x,z:TRASH.z,lid:trashLid},...TRASH_EXTRA];
 function nearestTrash(){ const P=person?person.position:{x:0,z:0}; let best=null, bd=1e9; for(const t of allTrash()){ const d=Math.hypot(P.x-t.x,P.z-t.z); if(d<bd){ bd=d; best=t; } } return [best,bd]; }
@@ -2143,6 +2185,7 @@ function doAct(a){
   mover=null; if(seatMode&&!(SEATED_OK[a])) standUp(); setAct(a);
 }
 let consumeT=0;   // 喝／吃了多久，喝完吃完就變空的
+function foodLevel(){ return inv.empty?0:Math.max(0,Math.min(1,1-consumeT/(CFG.吃喝完需要秒數||1))); }   /* 還剩多少（1＝全滿） */
 
 /* ---------- 小賣店、背包、垃圾桶 ---------- */
 document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{ const item=b.dataset.buy, price=PRICE[item];
