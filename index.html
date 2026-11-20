@@ -185,7 +185,7 @@
   .rd-head h4{color:#fff!important;font-size:17px!important;margin:0 0 2px!important} .rd-head small{font-size:12px;opacity:.92}
   .rd-body{overflow-y:auto;padding:12px 14px 4px;display:flex;flex-direction:column;gap:10px}
   .rd-secs{display:flex;flex-direction:column;gap:8px}
-  .rd-photo{margin:0} .rd-photo img{width:100%;max-height:220px;object-fit:cover;border-radius:12px;display:block} .rd-photo figcaption{font-size:12px;color:#8a7a62;text-align:center;margin-top:4px}
+  .rd-photo{margin:0} .rd-photo img{width:100%;height:auto;max-height:340px;object-fit:contain;background:#efe6d3;border-radius:12px;display:block} .rd-photo figcaption{font-size:12px;color:#8a7a62;text-align:center;margin-top:4px}
   .rd-sec{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #efe3cc;border-radius:12px;padding:9px 11px}
   .rd-ic{font-size:20px;line-height:1.3;flex:none}
   .rd-sec b{font-size:15px;color:#3b2f22} .rd-sec p{margin:2px 0 0!important;font-size:14px!important;line-height:1.65!important;color:#4a3d2e}
@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120172254';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120172544';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -348,8 +348,8 @@ const AREA_READS={
     cta:'來虎山看看，你認得出哪一隻是小虎嗎？'} };
 // 試算表「科普」分頁（展區那欄）有填的話，會用試算表的文字（純文字排版）
 /* 解說牌照片：官方 IG 已公開發布的照片，來源見 assets/素材來源.txt（2026-11-20 作者） */
-AREA_READS.狐獴島.photo='assets/photo_meerkat.jpg'; AREA_READS.狐獴島.photoCap='狐獴的站哨日常'; AREA_READS.狐獴島.photoSrc='資料來源：壽山動物園官方 IG';
-AREA_READS.孟加拉虎島.photo='assets/photo_tiger.jpg'; AREA_READS.孟加拉虎島.photoCap='孟加拉虎「小紅」泡澡打大哈欠'; AREA_READS.孟加拉虎島.photoSrc='資料來源：壽山動物園官方 IG・志工郭美利阿嬤拍攝';
+AREA_READS.狐獴島.photo='assets/photo_meerkat.jpg'; AREA_READS.狐獴島.photoCap='站在柱子上站哨的狐獴'; AREA_READS.狐獴島.photoSrc='資料來源：壽山動物園官方 IG';
+AREA_READS.孟加拉虎島.photo='assets/photo_tiger.jpg'; AREA_READS.孟加拉虎島.photoCap='新成員「小虎」上班第一天'; AREA_READS.孟加拉虎島.photoSrc='資料來源：壽山動物園官方 IG';
 AREA_READS.狐獴島.p=AREA_READS.狐獴島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n'); AREA_READS.孟加拉虎島.p=AREA_READS.孟加拉虎島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n');
 // 展場直播（YouTube）：都不是園方頻道開的，網址可能會換，用前先確認還在播
 const EMBED_OK=true;   // 能不能把 YouTube 嵌在網頁裡播：正式網站可以；claude.ai 預覽頁不行（會被擋成黑畫面），build_island_preview.py 會改成 false
@@ -858,7 +858,7 @@ function guideTex(title,kind){ const c=document.createElement('canvas'); c.width
   g.fillStyle='#fffaf0'; g.fillRect(0,0,512,340); g.fillStyle=main; g.fillRect(0,0,512,86); g.fillStyle='#fff'; g.font='bold 50px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(title+'・解說牌',256,46);
   g.fillStyle='#5a3c1c'; g.font='30px "Noto Sans TC",sans-serif'; g.textAlign='left'; ['走近一點','看看牠的','小知識'].forEach((t,i)=>g.fillText(t,290,150+i*46));
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
-  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.max(w/img.width,h/img.height), sw=w/r, sh=h/r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,y,w,h); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); g.fillStyle='#8a7a62'; g.font='15px "Noto Sans TC",sans-serif'; g.textAlign='left'; g.fillText('照片：壽山動物園官方 IG',290,300); t.needsUpdate=true; };
+  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.min(w/img.width,h/img.height), dw=img.width*r, dh=img.height*r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.fillStyle='#efe6d3'; g.fillRect(x,y,w,h); g.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); g.fillStyle='#8a7a62'; g.font='15px "Noto Sans TC",sans-serif'; g.textAlign='left'; g.fillText('照片：壽山動物園官方 IG',290,300); t.needsUpdate=true; };
   img.src=`assets/photo_${kind}.jpg`;   /* 官方 IG 照片，來源見 assets/素材來源.txt */
   return t; }
 // 直播電視機的佈景、招牌
