@@ -310,7 +310,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120230005';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120230234';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -554,6 +554,10 @@ function surfTex(kind){ const key='s_'+kind; if(PT2[key]) return PT2[key]; const
 const surfM=(color,kind,ru,rv,extra={})=>{ const tx=surfTex(kind).clone(); tx.needsUpdate=true; tx.repeat.set(ru,rv); return new THREE.MeshStandardMaterial({color,map:tx,roughness:.8,...extra}); };
 const cardM=kind=>new THREE.MeshStandardMaterial({map:plantCard(kind),alphaTest:.45,side:THREE.DoubleSide,roughness:.85});
 function conTier(){ const g=new THREE.LatheGeometry([[0,-.4],[.22,-.39],[.42,-.35],[.54,-.26],[.57,-.17],[.5,0],[.36,.22],[.2,.4],[.08,.49],[0,.51]].map(([x,y])=>new THREE.Vector2(x,y)),20); g.computeVertexNormals(); return g; }   /* 每層是實心、外凸的圓錐（像水滴），不會看起來被挖空（2026-11-20 作者） */
+/* 3D 葉片：扁扁的長橢圓，往下彎，邊緣一節一節圓圓的（像一片片小葉），Q 版又有厚度（2026-11-20 作者：椰子、筆筒樹太平、沒層次） */
+function bentLeaf(len,wid,droop,lift,bumps){ const g=new THREE.SphereGeometry(1,18,10); g.scale(wid,.07,len/2); g.translate(0,0,len/2); const p=g.attributes.position;
+  for(let i=0;i<p.count;i++){ const z=p.getZ(i), u=Math.max(0,z/len), x=p.getX(i)*(bumps?1-.24*Math.abs(Math.sin(u*Math.PI*bumps)):1); p.setX(i,x); p.setY(i,p.getY(i)-droop*u*u*len-Math.abs(x)*.35); }   /* 往下彎＋中間葉脈微微凸起 */
+  g.rotateX(-lift); g.computeVertexNormals(); return g; }
 const crossGeo=(w,h,n)=>mergeGeometries([...Array(n)].map((_,i)=>new THREE.PlaneGeometry(w,h).translate(0,h/2,0).rotateY(i*Math.PI/n)));
 /* 零件表：key → [形狀, 材質, 有沒有影子]；之後補種的植物也要畫得出來，所以全部先登記 */
 const PP={
@@ -561,6 +565,9 @@ const PP={
   ffrond:[new THREE.PlaneGeometry(.4,1.1).rotateX(Math.PI/2).translate(0,0,.54).rotateX(.25),cardM('ffrond'),false],
   fern:[crossGeo(.95,.8,4),cardM('fern'),false], grassD:[crossGeo(.62,.42,4),cardM('grassD'),false], grassG:[crossGeo(.72,.55,4),cardM('grassG'),false],
   reed:[crossGeo(.5,1.35,2),cardM('reed'),false], bambooLf:[crossGeo(.9,.7,2),cardM('bamboo'),false],
+  palm3a:[bentLeaf(1.3,.23,.42,.12,7),new THREE.MeshStandardMaterial({color:'#4fae45',roughness:.7}),true], palm3b:[bentLeaf(.88,.2,.22,.55,5),new THREE.MeshStandardMaterial({color:'#74ca5b',roughness:.7}),true],
+  fern3a:[bentLeaf(1.05,.18,.4,.18,9),new THREE.MeshStandardMaterial({color:'#3f9a46',roughness:.7}),true], fern3b:[bentLeaf(.72,.16,.2,.6,7),new THREE.MeshStandardMaterial({color:'#64bc56',roughness:.7}),true],
+  heart:[new THREE.SphereGeometry(.13,12,10),new THREE.MeshStandardMaterial({color:'#3f8f3a',roughness:.7}),false],
   monstera:[new THREE.PlaneGeometry(.55,.85).translate(0,.42,0).rotateX(-.3),cardM('monstera'),false],
   stalk:[new THREE.CylinderGeometry(.045,.055,1,7).translate(0,.5,0),surfM('#7cbf55','rings',1,3),true],
   bark:[new THREE.CylinderGeometry(.06,.1,1,8).translate(0,.5,0),surfM('#8a5e3c','bark',2,2),true],
@@ -590,7 +597,8 @@ function tree(x,z,sc=1,pot=true,yellow=0,baseY=0){ const parts=[]; const I0=inst
   if(kind==='palm'||kind==='treefern'){   /* 椰子樹／筆筒樹：一節一節的樹幹，頂端一圈 2D 大葉子 */
     const fernT=kind==='treefern', lean=fernT?0:(Math.random()-.5)*.5, la=Math.random()*6; let px=x, pz=z; const nSeg=fernT?5:6;
     for(let i=0;i<nSeg;i++){ const t=i/(nSeg-1); px=x+Math.sin(la)*lean*t*t*sc; pz=z+Math.cos(la)*lean*t*t*sc; if(fernT) P2('fernTrunk',MQ(px,i*.3*sc,pz,0,i,sc,.32*sc,sc)); else inst2('q_palm',TREE_GEO.palmSeg,TREE_MAT.palm,M4(px,(.15+i*.27)*sc,pz,i*.7,sc*(1-.06*i),sc,sc*(1-.06*i))); }
-    const ty=fernT?nSeg*.3*sc:(.15+5*.27+.12)*sc, nL=fernT?10:9; for(let k=0;k<nL;k++) P2(fernT?'ffrond':'frond',MQ(px,ty,pz,0,k/nL*Math.PI*2+RY,sc*(fernT?1:1.05)));
+    const ty=fernT?nSeg*.3*sc:(.15+5*.27+.12)*sc, lo=fernT?'fern3a':'palm3a', hi=fernT?'fern3b':'palm3b', nLo=fernT?9:8, nHi=fernT?6:5;   /* 兩層 3D 葉子：下層長、往下垂；上層短、往上翹 */
+    for(let k=0;k<nLo;k++) P2(lo,MQ(px,ty,pz,0,k/nLo*Math.PI*2+RY,sc)); for(let k=0;k<nHi;k++) P2(hi,MQ(px,ty+.07*sc,pz,0,(k+.5)/nHi*Math.PI*2+RY,sc)); P2('heart',MQ(px,ty+.06*sc,pz,0,0,sc));
     if(!fernT) for(let k=0;k<3;k++){ const a=k*2.1+RY; inst2('q_nut',TREE_GEO.nut,TREE_MAT.nut,M4(px+Math.sin(a)*.09*sc,ty-.1*sc,pz+Math.cos(a)*.09*sc,0,sc)); }
     ground(hab==='wet'?'reed':'fern',2,.7); top=ty; rad=.16; }
   else if(kind==='acacia'){   /* 金合歡：細樹幹分岔，上面一片扁扁的大傘狀樹冠 */
