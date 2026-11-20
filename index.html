@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120212415';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120213207';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -808,10 +808,17 @@ function cutoutTex(draw,w,h,res=256){ const W=res, H=Math.round(res*h/w), pad=Ma
   const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); const R=Math.max(3,pad*.7); for(let k=0;k<16;k++){ const a=k/16*Math.PI*2; g.drawImage(wc,Math.cos(a)*R,Math.sin(a)*R); } g.drawImage(t,0,0);
   const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4; return tex; }
 const POPS=[];   // 會翻起來的立牌
+/* 紙板厚度（2026-11-20 作者：要有一點厚度，邊緣像瓦楞紙板）：正面、背面（同一張圖左右翻轉）中間疊幾層同形狀的牛皮紙色薄片，邊上貼一點瓦楞條紋，不做真的凹凸 */
+let FLUTE_T=null; function fluteTex(){ if(FLUTE_T) return FLUTE_T; const c=document.createElement('canvas'); c.width=64; c.height=8; const g=c.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,64,8); for(let x=0;x<64;x+=8){ g.fillStyle='rgba(90,60,25,.55)'; g.fillRect(x,0,3,8); } FLUTE_T=new THREE.CanvasTexture(c); FLUTE_T.wrapS=FLUTE_T.wrapT=THREE.RepeatWrapping; FLUTE_T.repeat.set(10,1); FLUTE_T.colorSpace=THREE.SRGBColorSpace; return FLUTE_T; }
+function cardThick(parent,w,h,tex,y,T=.03,z0=0){ const geo=new THREE.PlaneGeometry(w,h), front=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.9})); front.position.set(0,y,z0+T/2); front.castShadow=true; parent.add(front);
+  const back=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.9,side:THREE.BackSide})); back.position.set(0,y,z0-T/2); parent.add(back);   /* 背面：同一張圖左右翻轉，輪廓跟正面對齊 */
+  const liner=new THREE.MeshStandardMaterial({color:'#dcc093',alphaMap:tex,alphaTest:.5,roughness:1,side:THREE.DoubleSide}), flute=new THREE.MeshStandardMaterial({color:'#b48a55',map:fluteTex(),alphaMap:tex,alphaTest:.5,roughness:1,side:THREE.DoubleSide});
+  const N=6; for(let k=1;k<N;k++){ const m=new THREE.Mesh(geo,(k===1||k===N-1)?liner:flute); m.position.set(0,y,z0-T/2+T*k/N); m.raycast=()=>{}; parent.add(m); }   /* 兩邊是淺色面紙、中間是有條紋的瓦楞芯 */
+  return front; }
 function cutout(draw,w,h,{x=0,z=0,ry=0,parent,shadow=true,pop=true,order=0}={}){ const tex=cutoutTex(draw,w,h);
   const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; parent.add(g);
   const hinge=new THREE.Group(); g.add(hinge);   // 翻起來的軸在底部
-  const front=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.9,side:THREE.DoubleSide})); front.position.y=h/2; front.castShadow=true; hinge.add(front);   /* 雙面：背面看到的是同一張圖左右翻轉，不再是空白紙板（2026-11-17 清單第 30 項） */
+  cardThick(hinge,w,h,tex,h/2,Math.min(.035,Math.max(.02,w*.025)));   /* 雙面＋厚度：背面同一張圖左右翻轉（清單第 30 項），中間是瓦楞紙板邊 */
   if(shadow){ const b=blob(w*.8,Math.min(.6,w*.35)); g.add(b); hinge.userData.blob=b; }
   if(pop){ hinge.userData.order=order; hinge.userData.p=0; hinge.rotation.x=-Math.PI/2*.97; POPS.push(hinge); }
   return g; }
@@ -1945,7 +1952,7 @@ function macaqueTex(){ const c=document.createElement('canvas'); c.width=256; c.
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
 const monkey=new THREE.Group(); monkey.visible=false; scene.add(monkey);
 { const tex=macaqueTex(); const W=.62,Hh=.775;
-  const front=new THREE.Mesh(new THREE.PlaneGeometry(W,Hh),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,side:THREE.DoubleSide,roughness:.9})); front.position.y=Hh/2+.04; monkey.add(front);
+  cardThick(monkey,W,Hh,tex,Hh/2+.04,.025);   /* 獼猴紙板：雙面＋瓦楞紙板厚度 */
   /* 獼猴紙板背面也看得到圖（清單第 30 項），不再蓋一層紙板色 */
   // 腳下只放一塊柔和的圓形陰影（不放底座方塊）；跳起來時陰影會變小變淡
   const sc=document.createElement('canvas'); sc.width=sc.height=128; const sg=sc.getContext('2d'); const gr=sg.createRadialGradient(64,64,4,64,64,62);
