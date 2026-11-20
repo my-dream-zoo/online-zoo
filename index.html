@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120195638';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120203717';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1074,7 +1074,7 @@ const CANOPY=new THREE.Group(); scene.add(CANOPY); FADERS.push(CANOPY);
   [[FORE.z0+2.2,'園區地圖'],[FORE.z0+4.6,'開放時間']].forEach(([z,t])=>{ const g=new THREE.Group(); g.position.set(FORE.x1-1.0,0,z); g.rotation.y=-Math.PI/2; scene.add(g); STATIC.push({x:FORE.x1-1.0,z,r:.4});
     const b=new THREE.Mesh(rboxGeo(.7,1.6,.16,.05),orange); b.position.y=.8; b.castShadow=true; g.add(b);
     const tx=new THREE.Mesh(new THREE.PlaneGeometry(.6,.2),new THREE.MeshStandardMaterial({map:signTex(t,'#ea8d2d','#ffffff',300,100)})); tx.position.set(0,1.3,.085); g.add(tx);
-    const tx2=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshStandardMaterial({map:signTex('（待園方提供）','#fff4e6','#ea8d2d',300,300)})); tx2.position.set(0,.8,.085); g.add(tx2); });
+    const tx2=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshStandardMaterial({map:signTex('詳見官方網站','#fff4e6','#ea8d2d',300,300)})); tx2.position.set(0,.8,.085); g.add(tx2); });
   // 兩張長椅、兩盞路燈（路燈在後面統一做）
   [[-3.05,13.0],[-3.05,15.6]].forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=Math.PI/2;   /* 靠左邊黃花牆，不佔步道 */ g.scale.setScalar(1.2); scene.add(g); STATIC.push({x,z,r:.75}); SEATS_FIX.push({x:x+.1,z,y:.29,yaw:Math.PI/2,ax:x+.9,az:z});
     box(1.1,.07,.42,new THREE.MeshStandardMaterial({map:woodTex(1),color:'#c99a66',roughness:.8}),0,.36,0,g); const bk=box(1.1,.32,.06,new THREE.MeshStandardMaterial({map:woodTex(1),color:'#c99a66',roughness:.8}),0,.6,-.2,g); bk.rotation.x=-.1;
@@ -1095,10 +1095,10 @@ const CANOPY=new THREE.Group(); scene.add(CANOPY); FADERS.push(CANOPY);
   const s=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.34),new THREE.MeshBasicMaterial({map:signTex('遊客中心','#fffaf0','#4f7d44',300,80)})); s.position.set(0,1.32,.95); vc.add(s); }
 const INFO_SIGN=[6.0,5.1];   /* 原位置（不在大門口，不動） */
 { const [bx,bz]=INFO_SIGN,   /* 讓出往狐獴島的路口 */ by=Math.atan2(-bx,-bz); const ib=new THREE.Group(); ib.position.set(bx,0,bz); ib.rotation.y=by; ib.scale.setScalar(1.3); scene.add(ib); FADERS.push(ib); STATIC.push({x:bx,z:bz,hw:.9,hd:.2,yaw:by});
-  [-1,1].forEach(s=>{ const p=new THREE.Mesh(rboxGeo(.12,1.25,.12,.04),WALL_MAT); p.position.set(s*.6,.62,0); p.castShadow=true; ib.add(p); }); box(1.4,1.0,.08,WALL_MAT,0,1.05,-.03,ib);
+  [-1,1].forEach(s=>{ const p=new THREE.Mesh(rboxGeo(.12,1.5,.12,.04),WALL_MAT); p.position.set(s*.6,.75,-.14); p.castShadow=true; ib.add(p); }); box(1.4,1.0,.08,WALL_MAT,0,1.05,-.03,ib);   /* 柱子放在看板後面，不會穿過字面 */
   const c=document.createElement('canvas'); c.width=512; c.height=360; const g=c.getContext('2d'); g.fillStyle='#fffaf0'; g.fillRect(0,0,512,360); g.strokeStyle='#5a3c1c'; g.lineWidth=10; g.strokeRect(5,5,502,350);
   g.fillStyle='#5a3c1c'; g.font='bold 44px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.fillText('園區資訊',256,70); g.font='28px "Noto Sans TC",sans-serif'; g.fillStyle='#7a6f60';
-  ['開放時間、票價、交通','（待園方提供，正式版放這裡）','也可以到遊客中心詢問'].forEach((t,i)=>g.fillText(t,256,140+i*52));
+  ['開放時間、票價、交通資訊','請參考壽山動物園','官方臉書、IG、官方網站'].forEach((t,i)=>g.fillText(t,256,140+i*52));
   const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace; const b=new THREE.Mesh(new THREE.PlaneGeometry(1.25,.88),new THREE.MeshStandardMaterial({map:tx})); b.position.set(0,1.05,.02); ib.add(b); }
 // 每個區域的入口區牌（主題樂園式）：圓角造型招牌＋上方雲朵、粗體字貼紙趴在招牌上、柱腳有花草
 // 每個橋頭放「對面那一區」的區牌，正面朝這一區裡面（站在這邊就看到要去的區域入口）；背面也寫區名（雙面，2026-11-15 作者）
@@ -1652,9 +1652,9 @@ function setupUI2(){
   $('emoteBtn').onclick=()=>{ const o=!em.classList.contains('open'); closeMenus(); if(o){ emoteList(); em.classList.add('open'); $('emoteBtn').classList.add('on'); } };
   canvas.addEventListener('pointerdown',closeMenus);
   // 浮動招牌
-  addLabel('遊客中心',()=>new THREE.Vector3(-26.7,5.9,4.0),{fg:'#3f7a3a'}); addLabel('園區資訊',()=>new THREE.Vector3(6.3,2.9,3.3),{fg:'#5a3c1c',h:.45});
+  addLabel('遊客中心',()=>new THREE.Vector3(-26.7,5.9,4.0),{fg:'#3f7a3a'}); addLabel('園區資訊',()=>new THREE.Vector3(INFO_SIGN[0],2.75,INFO_SIGN[1]),{fg:'#5a3c1c',h:.45});   /* 浮字對齊看板正上方 */
   addLabel('飲料・零食',()=>PLACE.小賣店&&PLACE.小賣店.position.clone().setY(4.2),{fg:'#c0392b'}); addLabel('森林小棧・室內用餐',()=>PLACE.室內用餐區&&PLACE.室內用餐區.position.clone().setY(4.3),{fg:'#3f7a3a'});
-  addLabel('戲水池',()=>new THREE.Vector3(0,4.3,-3.4),{fg:'#2f6f8f'}); /* 垃圾桶上方的浮字拿掉（2026-11-20 作者），桶身已有標籤 */ { const SB=BRIDGES.find(B=>B.b==='保育員工作區'); if(SB) addLabel('保育員專屬區域（敬請期待）',()=>new THREE.Vector3((SB.s.x+SB.e.x)/2,3.3,(SB.s.z+SB.e.z)/2),{fg:'#3e5a3a',h:.4}); } addLabel('緬懷地圖',()=>new THREE.Vector3(MEMORIAL.x,3.6,MEMORIAL.z),{fg:'#6f63b8',h:.42});   Object.entries(STAGES).forEach(([k,st])=>addLabel(k==='狐獴島'?'狐獴':'孟加拉虎',()=>st.center.clone().setY(5.3),{fg:'#8c4a2b',h:.75}));
+  addLabel('戲水池',()=>new THREE.Vector3(0,4.3,-3.4),{fg:'#2f6f8f'}); /* 垃圾桶上方的浮字拿掉（2026-11-20 作者），桶身已有標籤 */ { const SB=BRIDGES.find(B=>B.b==='保育員工作區'); if(SB) addLabel('保育員專屬區域（敬請期待）',()=>new THREE.Vector3((SB.s.x+SB.e.x)/2,3.3,(SB.s.z+SB.e.z)/2),{fg:'#3e5a3a',h:.4}); } /* 觀景台拱門上已有「往緬懷地圖」招牌，上方浮字拿掉（2026-11-17 作者 清單第 18 項） */   Object.entries(STAGES).forEach(([k,st])=>addLabel(k==='狐獴島'?'狐獴':'孟加拉虎',()=>st.center.clone().setY(5.3),{fg:'#8c4a2b',h:.75}));
   // 情境按鈕：走到小賣店前就能買、拿著食物就能吃喝收起來、靠近垃圾桶就能丟、靠近長椅就能坐（常用的不收進選單）
   let ctxKey='';
   const updateCtx=()=>{ if(!person) return; const P=person.position, near=(o,d)=>o&&Math.hypot(P.x-o.position.x,P.z-o.position.z)<d, h=inv.hand, L=[];
