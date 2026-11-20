@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120210101';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120212415';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -811,8 +811,7 @@ const POPS=[];   // 會翻起來的立牌
 function cutout(draw,w,h,{x=0,z=0,ry=0,parent,shadow=true,pop=true,order=0}={}){ const tex=cutoutTex(draw,w,h);
   const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; parent.add(g);
   const hinge=new THREE.Group(); g.add(hinge);   // 翻起來的軸在底部
-  const front=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.9})); front.position.y=h/2; front.castShadow=true; hinge.add(front);
-  const back=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({color:'#c9a77a',alphaMap:tex,alphaTest:.5,roughness:1})); back.position.set(0,h/2,-.012); back.rotation.y=Math.PI; hinge.add(back);
+  const front=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.9,side:THREE.DoubleSide})); front.position.y=h/2; front.castShadow=true; hinge.add(front);   /* 雙面：背面看到的是同一張圖左右翻轉，不再是空白紙板（2026-11-17 清單第 30 項） */
   if(shadow){ const b=blob(w*.8,Math.min(.6,w*.35)); g.add(b); hinge.userData.blob=b; }
   if(pop){ hinge.userData.order=order; hinge.userData.p=0; hinge.rotation.x=-Math.PI/2*.97; POPS.push(hinge); }
   return g; }
@@ -1657,8 +1656,8 @@ function setupUI2(){
   const im=$('interMenu'), em=$('emoteMenu');
   const closeMenus=()=>{ [im,em].forEach(m=>m.classList.remove('open')); $('interBtn').classList.remove('on'); $('emoteBtn').classList.remove('on'); };
   const fill=(el,list)=>{ el.innerHTML=''; list.forEach(([t,ic,fn,keep,cls])=>{ const b=document.createElement('button'); b.innerHTML=btnHTML(ic,t); if(cls) b.className=cls; b.onclick=()=>{ if(!keep) closeMenus(); fn(); }; el.appendChild(b); }); };
-  const goList=()=>fill(im,[['返回','back',interList,true],['入口廣場','pin',()=>document.querySelector('[data-go=入口廣場]').click()],['遊客服務區','pin',()=>document.querySelector('[data-go=遊客服務區]').click()],['狐獴島','pin',()=>document.querySelector('[data-go=狐獴島]').click()],['孟加拉虎島','pin',()=>document.querySelector('[data-go=孟加拉虎島]').click()],['觀景台','pin',()=>walkTo(...standPoint('觀景台'))],['室內用餐區','home',()=>$('bIndoor').click()]]);
-  function interList(){ fill(im,[['去哪裡','pin',goList,true],['園區地圖','pin',()=>openMap()],['回大門口','home',goStart],['讀科普','book',()=>$('bRead').click()],['小測驗','quiz',()=>$('bQuiz').click(),false,quizOpen()?(quizLeft()?'dot':''):'lock']]); }
+  const goList=()=>fill(im,[['返回','back',interList,true],['回大門口','home',goStart],['入口廣場','pin',()=>document.querySelector('[data-go=入口廣場]').click()],['遊客服務區','pin',()=>document.querySelector('[data-go=遊客服務區]').click()],['狐獴島','pin',()=>document.querySelector('[data-go=狐獴島]').click()],['孟加拉虎島','pin',()=>document.querySelector('[data-go=孟加拉虎島]').click()],['觀景台','pin',()=>walkTo(...standPoint('觀景台'))],['室內用餐區','home',()=>$('bIndoor').click()]]);
+  function interList(){ fill(im,[['去哪裡','pin',goList,true],['園區地圖','pin',()=>openMap()],['讀科普','book',()=>$('bRead').click()],['小測驗','quiz',()=>$('bQuiz').click(),false,quizOpen()?(quizLeft()?'dot':''):'lock']]); }
   const emoteList=()=>fill(em,[['揮手','wave',()=>doAct('wave')],['跳','jump',()=>doAct('jump')],['合掌','pray',()=>doAct('pray')],['鞠躬','bow',()=>doAct('bow')],['拍照','camera',()=>doAct('photo')],['拿籤','lot',()=>doAct('lot')],['坐地上','sitg',()=>doAct('sitGround')],['坐椅子','seat',()=>doAct('sit')],['停下','stop',()=>doAct('idle')]]);
   $('interBtn').onclick=()=>{ const o=!im.classList.contains('open'); closeMenus(); if(o){ interList(); im.classList.add('open'); $('interBtn').classList.add('on'); } };
   $('emoteBtn').onclick=()=>{ const o=!em.classList.contains('open'); closeMenus(); if(o){ emoteList(); em.classList.add('open'); $('emoteBtn').classList.add('on'); } };
@@ -1947,7 +1946,7 @@ function macaqueTex(){ const c=document.createElement('canvas'); c.width=256; c.
 const monkey=new THREE.Group(); monkey.visible=false; scene.add(monkey);
 { const tex=macaqueTex(); const W=.62,Hh=.775;
   const front=new THREE.Mesh(new THREE.PlaneGeometry(W,Hh),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,side:THREE.DoubleSide,roughness:.9})); front.position.y=Hh/2+.04; monkey.add(front);
-  const back=new THREE.Mesh(new THREE.PlaneGeometry(W,Hh),new THREE.MeshStandardMaterial({color:'#c9a77a',alphaMap:tex,alphaTest:.5,side:THREE.DoubleSide})); back.position.set(0,Hh/2+.04,-.015); monkey.add(back);
+  /* 獼猴紙板背面也看得到圖（清單第 30 項），不再蓋一層紙板色 */
   // 腳下只放一塊柔和的圓形陰影（不放底座方塊）；跳起來時陰影會變小變淡
   const sc=document.createElement('canvas'); sc.width=sc.height=128; const sg=sc.getContext('2d'); const gr=sg.createRadialGradient(64,64,4,64,64,62);
   gr.addColorStop(0,'rgba(50,32,16,.85)'); gr.addColorStop(.5,'rgba(50,32,16,.5)'); gr.addColorStop(1,'rgba(60,40,20,0)'); sg.fillStyle=gr; sg.fillRect(0,0,128,128);
@@ -2550,15 +2549,32 @@ renderer.setAnimationLoop(()=>{ const raw=clock.getDelta(), dt=Math.min(raw,.05)
   controls.update(); renderer.render(scene,camera); });
 // 位置存在這支手機（瀏覽器 localStorage），不會上傳
 const POS_KEY='zooIslandPos'; let posSaveT=0;
-function savePos(){ if(!person||dressing) return; const P=person.position; if(!walkable(P.x,P.z)&&!seatMode) return; try{ localStorage.setItem(POS_KEY,JSON.stringify({x:+P.x.toFixed(2),z:+P.z.toFixed(2),yaw:+person.rotation.y.toFixed(2),at:Date.now()})); }catch(_){} }
+function savePos(){ if(!progReady||WIPE) return; saveProgress(); if(!person||dressing) return; const P=person.position; if(!walkable(P.x,P.z)&&!seatMode) return; try{ localStorage.setItem(POS_KEY,JSON.stringify({x:+P.x.toFixed(2),z:+P.z.toFixed(2),yaw:+person.rotation.y.toFixed(2),at:Date.now()})); }catch(_){} }
 function placeAt(x,z,yaw){ if(seatMode) standUp(); mover=null; person.position.set(x,0,z); person.rotation.y=yaw; wantYaw=yaw; const phone=matchMedia('(max-width:760px)').matches, D=phone?7.8:6.2, a=yaw+Math.PI;
   controls.target.set(x,.9,z); camera.position.set(x+Math.sin(a)*D,phone?6.2:4.6,z+Math.cos(a)*D); controls.update(); savePos(); }
 function goStart(){ placeAt(.2,16.4,Math.PI); toast('回到大門口了'); }
 function softGLHint(){ if(!SOFT_GL||sessionStorage.getItem('softGLHint')) return; sessionStorage.setItem('softGLHint','1'); toast('這個瀏覽器沒開顯示卡加速，會很卡：Chrome 設定 → 系統 → 打開「使用圖形加速功能」→ 重新啟動',true); toastT=9; }
-function askResume(){ let s=null; try{ s=JSON.parse(localStorage.getItem(POS_KEY)||'null'); }catch(_){} if(!s||!walkable(s.x,s.z)||Math.hypot(s.x-.2,s.z-16.4)<2.5) return;
-  const r=regionAt(s.x,s.z)||'', where=r.startsWith('bridge')?'木橋':(r||'園區裡'); mbox.classList.remove('wide');
-  mbox.innerHTML=`<h4>歡迎回來</h4><p>上次你停在「${where}」，要從哪裡開始？</p><button id="rLast">回到上次的位置</button><button id="rStart">從大門口開始</button><div class="note">位置只存在這支手機（瀏覽器）裡，不會上傳。</div>`; modal.classList.add('show');
-  document.getElementById('rLast').onclick=()=>{ closeModal(); placeAt(s.x,s.z,s.yaw??Math.PI); toast(`回到上次的位置：${where}`); }; document.getElementById('rStart').onclick=()=>{ closeModal(); savePos(); }; }
+/* ---------- 繼續遊戲（2026-11-17 清單第 27 項）：除了位置，也記住分數、零用錢、背包、集章、成就、讀過的科普、答過的測驗、看過的解說牌、換裝 ---------- */
+var PROG_KEY='zooProgress', progReady=false, WIPE=false;   /* progReady：玩家選好「繼續遊戲／重新登入」之前不要存，免得把舊紀錄蓋掉 */
+function saveProgress(){ if(!progReady||WIPE||!person) return; try{ localStorage.setItem(PROG_KEY,JSON.stringify({v:1,at:Date.now(),inv:{money:inv.money,hand:inv.hand,empty:inv.empty,bag:inv.bag,score:inv.score,stolen:inv.stolen},got,
+  read:[...done.read].map(i=>READS[i]&&READS[i].t).filter(Boolean),quiz:[...done.quiz].map(i=>QUIZ[i]&&QUIZ[i].q).filter(Boolean),area:[...done.area],look})); }catch(_){} }   /* 科普、測驗用標題／題目文字存，題庫順序改了也對得上 */
+function loadProgress(p){ if(!p) return; Object.assign(inv,p.inv||{}); if(!Array.isArray(inv.bag)) inv.bag=[]; if(p.got){ Object.assign(got.stamp,p.got.stamp||{}); Object.assign(got.ach,p.got.ach||{}); }
+  done.read.clear(); (p.read||[]).forEach(t=>{ const i=READS.findIndex(r=>r.t===t); if(i>=0) done.read.add(i); });
+  done.quiz.clear(); (p.quiz||[]).forEach(q=>{ const i=QUIZ.findIndex(x=>x.q===q); if(i>=0) done.quiz.add(i); });
+  done.area.clear(); (p.area||[]).forEach(k=>{ if(AREA_READS[k]) done.area.add(k); });
+  if(p.look) look={...look,...p.look}; rebuild(); drawHud(); drawQuest(); }
+function askResume(){ let s=null, p=null; try{ s=JSON.parse(localStorage.getItem(POS_KEY)||'null'); p=JSON.parse(localStorage.getItem(PROG_KEY)||'null'); }catch(_){}
+  const hasPos=!!s&&walkable(s.x,s.z)&&Math.hypot(s.x-.2,s.z-16.4)>=2.5, hasProg=!!p&&((p.inv&&(p.inv.score>0||p.inv.money!==CFG.進場金額||(p.inv.bag||[]).length))||(p.read||[]).length||(p.quiz||[]).length||(p.area||[]).length||Object.keys((p.got&&p.got.stamp)||{}).length);
+  if(!hasPos&&!hasProg){ progReady=true; return; }
+  const r=hasPos?(regionAt(s.x,s.z)||''):'', where=hasPos?(r.startsWith('bridge')?'木橋':(r||'園區裡')):'大門口';
+  const sum=p&&p.inv?`遊園分數 ${p.inv.score||0} 分・錢包 ${p.inv.money??CFG.進場金額} 元・集章 ${Object.keys((p.got&&p.got.stamp)||{}).length} 個`:'';
+  mbox.classList.remove('wide'); mbox.innerHTML=`<h4>歡迎回來</h4><p>上次你停在「${where}」。${sum?`<br><small style="color:#7a6a52">${sum}</small>`:''}</p><button id="rLast">繼續遊戲</button><button id="rNew">重新登入</button><div class="note">紀錄只存在這支手機（瀏覽器）裡，不會上傳。</div>`; modal.classList.add('show');
+  document.getElementById('rLast').onclick=()=>{ closeModal(); progReady=true; loadProgress(p); if(hasPos) placeAt(s.x,s.z,s.yaw??Math.PI); else savePos(); toast(hasPos?`繼續遊戲：${where}`:'繼續遊戲'); };
+  document.getElementById('rNew').onclick=()=>{ mbox.innerHTML=`<h4>確定要重新登入嗎？</h4><p>會清掉分數、零用錢、背包、集章、成就、讀過的科普、答過的測驗和換裝，從大門口重新開始。</p><button id="rYes">確定，重新開始</button><button id="rNo">取消</button>`;
+    document.getElementById('rNo').onclick=askResume; document.getElementById('rYes').onclick=()=>{ WIPE=true; try{ localStorage.removeItem(PROG_KEY); localStorage.removeItem(POS_KEY); }catch(_){} location.reload(); }; }; }
+
+
+
 /* ---------- 小地圖：右上角，跟著人物移動、北方朝上；點一下打開整個園區地圖，點島就走過去 ---------- */
 const mini=document.getElementById('miniMap'), mctx=mini.getContext('2d'); let miniT=0;
 const ISL_COL={入口廣場:'#efe4cc',遊客服務區:'#f3e3c8',保育員工作區:'#d6d1c4',狐獴島:'#efd9a8',孟加拉虎島:'#a6cf82',中央廣場:'#efe4cc',觀景台:'#e6d3b3'};
