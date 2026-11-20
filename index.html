@@ -151,6 +151,8 @@
   #loader .lpct{font-size:14px;color:#7a6f60;width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
   #loader .ltip{font-size:13px;color:#7a6f60;line-height:1.7;min-height:3.4em}
   #ldGo{display:block;margin:4px auto 14px;padding:12px 38px;border:0;border-radius:99px;background:#c9853a;color:#fff;font-size:17px;font-weight:700;letter-spacing:.12em;box-shadow:0 4px 0 #9c6426;cursor:pointer;animation:ldbob 1.8s ease-in-out infinite}
+  #ldGo:focus{outline:none} #ldGo:focus-visible{outline:3px solid #8fae86;outline-offset:4px}
+  #loader.ready .spin::before{animation:none;border-color:#8fae86} #loader.ready .spin span{animation:none}
   #ldGo[hidden]{display:none} #ldGo:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6426}
   @keyframes ldspin{to{transform:rotate(360deg)}}
   @keyframes ldbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
@@ -246,7 +248,7 @@
     /* 2026-11-20：跑完停在載入畫面，按「進入動物園」才進去 */
     setTimeout(function(){ var l=document.getElementById('loader'), b=document.getElementById('ldGo'), m=document.getElementById('ldMsg'), t=document.getElementById('ldTip'); if(!l) return;
       if(m) m.textContent='小島準備好了！'; if(t) t.textContent='用左下的搖桿或點地上就能走路'; if(!b){ l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); return; }
-      b.hidden=false; b.focus(); b.onclick=function(){ b.hidden=true; l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); }; },350); };
+      l.classList.add('ready'); b.hidden=false; b.focus({preventScroll:true}); b.onclick=function(){ b.hidden=true; l.classList.add('out'); setTimeout(function(){ l.style.display='none'; },700); }; },350); };
 })();
 </script>
 <div id="wrap">
@@ -302,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120171507';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120171805';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -2429,7 +2431,7 @@ addEventListener('resize',resize); resize();
 const clock=new THREE.Clock(); let hudT=0, lastIndoor=false, nearTrash=false;
 let ldFrames=0;
 // 換場景用（之後的室內空間：遊客中心、保育員工作區…）：先蓋上 Loading，顯示標題和簡單介紹，準備好再打開
-function sceneLoading(title,intro,work,ms=1200){ const l=document.getElementById('loader'); document.getElementById('ldTitle').textContent=title; document.getElementById('ldMsg').textContent=intro; document.getElementById('ldTip').textContent=''; document.getElementById('ldGo').hidden=true;
+function sceneLoading(title,intro,work,ms=1200){ const l=document.getElementById('loader'); document.getElementById('ldTitle').textContent=title; document.getElementById('ldMsg').textContent=intro; document.getElementById('ldTip').textContent=''; document.getElementById('ldGo').hidden=true; l.classList.remove('ready');
   l.style.display='grid'; l.classList.remove('out'); window.__ldProgress&&window.__ldProgress(0); const f=document.getElementById('ldFill'); f.style.width='0'; setTimeout(()=>{ f.style.width='100%'; document.getElementById('ldPct').textContent='100%'; },60);
   setTimeout(()=>{ try{ work&&work(); }catch(_){} l.classList.add('out'); setTimeout(()=>{ l.style.display='none'; },700); },ms); }
 let perfT=0, perfN=0, perfS=0;
