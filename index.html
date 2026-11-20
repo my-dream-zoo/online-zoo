@@ -314,7 +314,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120232728';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120234010';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -2123,7 +2123,7 @@ const PRESETS={
   保育員:{size:'adult',skin:'#f2c9a8',hairStyle:'short',hairColor:'#4e3322',top:'#3f7f45',bottom:'#d6b48a',shoes:'#6e4a30',hat:'cap',hatColor:'#3f7f45',eyewear:'none',hold:'none',camera:false,bag:'none',badge:true,boots:true,cardigan:false,mouth:'smile'},
   小朋友:{size:'kid',skin:'#fbe3cf',hairStyle:'twin',hairColor:'#8a5a3a',top:'#f5cf4a',bottom:'#4a8fd6',shoes:'#d9534a',hat:'none',eyewear:'none',hold:'balloon',holdColor:'#f08aa8',camera:false,bag:'backpack',bagColor:'#ef8a3c',badge:false,boots:false,cardigan:false,mouth:'open'},
   學生:{size:'adult',skin:'#f2c9a8',hairStyle:'bob',hairColor:'#1f2024',top:'#f4f1ea',bottom:'#2f4f86',shoes:'#34373d',hat:'none',eyewear:'glasses',eyewearColor:'#34373d',hold:'drink',holdColor:'#d6b48a',camera:false,bag:'shoulder',bagColor:'#3fb3a4',badge:false,boots:false,cardigan:false,mouth:'smile'},
-  老人:{size:'adult',skin:'#f2b99a',hairStyle:'bun',hairColor:'#c9c9c9',top:'#c4a8e8',bottom:'#6e4a30',shoes:'#4e3322',hat:'none',eyewear:'glasses',eyewearColor:'#b07c48',hold:'none',camera:false,bag:'monkey',bagColor:'#5fae4f',badge:false,boots:false,cardigan:true,mouth:'smile'},
+  老人:{elder:true,size:'adult',skin:'#f2b99a',hairStyle:'bun',hairColor:'#c9c9c9',top:'#c4a8e8',bottom:'#6e4a30',shoes:'#4e3322',hat:'none',eyewear:'glasses',eyewearColor:'#b07c48',hold:'none',camera:false,bag:'monkey',bagColor:'#5fae4f',badge:false,boots:false,cardigan:true,mouth:'smile'},
   遊客:{size:'adult',skin:'#f2c9a8',hairStyle:'spiky',hairColor:'#6e4a30',top:'#d9534a',bottom:'#4a8fd6',shoes:'#f4f1ea',hat:'straw',hatColor:'#e8c66a',eyewear:'sunglasses',eyewearColor:'#34373d',hold:'none',camera:true,cameraColor:'#34373d',bag:'backpack',bagColor:'#4a8fd6',badge:false,boots:false,cardigan:false,mouth:'smile'},
 };
 let look={...DEFAULT_LOOK,...PRESETS.遊客};
@@ -2179,7 +2179,8 @@ function drawPanel(){
     const h=document.createElement('h2'); h.textContent=title; panel.appendChild(h);
     if(opts){ const box=document.createElement('div'); box.className='chips';
       opts.forEach(([v,label])=>{ const b=document.createElement('button'); const ic=key&&iconOf(key,v);
-        if(ic){ b.innerHTML=ic+`<span>${label}</span>`; b.title=label; b.setAttribute('aria-label',label); b.className='ico'+(look[key]===v?' on':''); }
+        if(ic){ b.innerHTML=ic+`<span>${label}</span>`; b.title=label; b.setAttribute('aria-label',label); b.className='ico'+(look[key]===v?' on':'');
+          if(key==='size'&&v==='kid'&&look.elder){ b.disabled=true; b.classList.add('soon'); b.title='老人造型不能選小朋友體型'; } }   /* 老人造型：體型不能選小朋友（2026-11-20 作者） */
         else if(!key&&SOON.includes(v)){ b.innerHTML=`${label}<small>敬請期待</small>`; b.className='soon'; b.title='之後「申請保育員」開放後才能使用'; b.disabled=true; }
         else { b.textContent=label; if(key&&look[key]===v) b.className='on'; }
         b.onclick=()=>{ if(!key){ look=v==='隨機'?randomLook():{...DEFAULT_LOOK,...PRESETS[v]}; inv.hand=look.hold; inv.empty=false; }
