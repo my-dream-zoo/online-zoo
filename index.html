@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120193905';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120195638';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -348,10 +348,10 @@ const AREA_READS={
     cta:'來虎山看看，你認得出哪一隻是小虎嗎？'} };
 // 試算表「科普」分頁（展區那欄）有填的話，會用試算表的文字（純文字排版）
 /* 解說牌照片：優先用官方新聞稿照片，新聞稿沒有這隻動物才用官方 IG，來源見 assets/素材來源.txt（2026-11-20 作者） */
-AREA_READS.狐獴島.photo='assets/photo_meerkat.jpg'; AREA_READS.狐獴島.photoCap='狐獴家族站哨'; AREA_READS.狐獴島.photoNote='約 2025/3 從臺北市立動物園來到壽山'; AREA_READS.狐獴島.photoSrc='資料來源：壽山動物園新聞稿';
+AREA_READS.狐獴島.photo='assets/photo_meerkat.jpg'; AREA_READS.狐獴島.photoCap='狐獴家族站哨'; AREA_READS.狐獴島.photoNote='約 2025/3 從臺北市立動物園來到壽山'; AREA_READS.狐獴島.photoSrc='參考資料：壽山動物園官方臉書、IG、官方網站';
 /* 體型大、有四隻的動物：解說卡分四格，一隻一張正面清楚的照片（2026-11-20 作者） */
 /* 名字下方：生日（西元/月/日）＋星座，資料來自「壽山動物園的成員_明細」 */
-AREA_READS.孟加拉虎島.photos=[['assets/photo_tiger_asheng.jpg','阿生','2015/12/9（射手座）'],['assets/photo_tiger_erniu.jpg','二妞','2018/4/12（牡羊座）'],['assets/photo_tiger_xiaohu.jpg','小虎','2025/12/20（射手座）'],['assets/photo_tiger_xiaohong.jpg','小紅','2018/12/22（摩羯座）']]; AREA_READS.孟加拉虎島.photoSrc='資料來源：壽山動物園新聞稿';
+AREA_READS.孟加拉虎島.photos=[['assets/photo_tiger_asheng.jpg','阿生','2015/12/9（射手座）'],['assets/photo_tiger_erniu.jpg','二妞','2018/4/12（牡羊座）'],['assets/photo_tiger_xiaohu.jpg','小虎','2025/12/20（射手座）'],['assets/photo_tiger_xiaohong.jpg','小紅','2018/12/22（摩羯座）']]; AREA_READS.孟加拉虎島.photoSrc='參考資料：壽山動物園官方臉書、IG、官方網站';
 AREA_READS.狐獴島.p=AREA_READS.狐獴島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n'); AREA_READS.孟加拉虎島.p=AREA_READS.孟加拉虎島.secs.map(x=>`【${x[1]}】${x[2]}`).join('\n');
 // 展場直播（YouTube）：都不是園方頻道開的，網址可能會換，用前先確認還在播
 const EMBED_OK=true;   // 能不能把 YouTube 嵌在網頁裡播：正式網站可以；claude.ai 預覽頁不行（會被擋成黑畫面），build_island_preview.py 會改成 false
@@ -880,7 +880,7 @@ function guideTex(title,kind){ const c=document.createElement('canvas'); c.width
   g.fillStyle='#fffaf0'; g.fillRect(0,0,512,340); g.fillStyle=main; g.fillRect(0,0,512,86); g.fillStyle='#fff'; g.font='bold 50px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(title+'・解說牌',256,46);
   g.fillStyle='#5a3c1c'; g.font='30px "Noto Sans TC",sans-serif'; g.textAlign='left'; ['走近一點','看看牠的','小知識'].forEach((t,i)=>g.fillText(t,290,150+i*46));
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
-  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.min(w/img.width,h/img.height), dw=img.width*r, dh=img.height*r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.fillStyle='#efe6d3'; g.fillRect(x,y,w,h); g.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); g.fillStyle='#8a7a62'; g.font='15px "Noto Sans TC",sans-serif'; g.textAlign='left'; g.fillText('照片：壽山動物園新聞稿',290,300); t.needsUpdate=true; };
+  const img=new Image(); img.onload=()=>{ const x=22,y=102,w=250,h=220, r=Math.min(w/img.width,h/img.height), dw=img.width*r, dh=img.height*r; g.save(); g.beginPath(); g.roundRect(x,y,w,h,18); g.clip(); g.fillStyle='#efe6d3'; g.fillRect(x,y,w,h); g.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh); g.restore(); g.lineWidth=6; g.strokeStyle='#ffffff'; g.beginPath(); g.roundRect(x,y,w,h,18); g.stroke(); g.fillStyle='#8a7a62'; g.font='13px "Noto Sans TC",sans-serif'; g.textAlign='left'; g.fillText('參考：壽山動物園官方臉書、IG、官網',290,300); t.needsUpdate=true; };
   img.src=`assets/photo_${kind}.jpg`;   /* 官方 IG 照片，來源見 assets/素材來源.txt */
   return t; }
 // 直播電視機的佈景、招牌
@@ -1674,7 +1674,7 @@ function setupUI2(){
     const key=L.map(x=>x[0]).join('|'); if(key===ctxKey) return; ctxKey=key; const box=$('ctx'); box.innerHTML='';
     L.slice(0,4).forEach(([t,ic,fn])=>{ const b=document.createElement('button'); b.innerHTML=UI_ICON[ic]+t; b.onclick=()=>{ fn(); ctxKey=null; }; box.appendChild(b); }); };
   setInterval(()=>{ updateCtx(); drawQuest(); const qb=$('quizBtn'), on=quizOpen()&&quizLeft()>0; qb.style.display=on?'flex':'none'; qb.classList.toggle('dot',on); },250);   /* 有小測驗可以做才出現在背包上面 */
-  $('quest').onclick=()=>{ if(quizOpen()&&quizLeft()) $('bQuiz').click(); else if(!quizOpen()) toast(`從入口廣場過橋到${AREA_KEYS().filter(k=>!done.area.has(k)).join('、')}，走到展場前的解說牌看一看`); else toast('任務都完成了，之後會再加新的'); };
+  $('quest').onclick=()=>{ if(quizLeft()) $('bQuiz').click(); else if(AREA_KEYS().some(k=>!done.area.has(k))) toast(`從入口廣場過橋到${AREA_KEYS().filter(k=>!done.area.has(k)).join('、')}，走到展場前的解說牌看一看`); else toast('任務都完成了，之後會再加新的'); };
 }
 function setupUI(){ setupUI2();
   if(matchMedia('(max-width:760px)').matches){ document.getElementById('tapHint').textContent='用左下的搖桿走路，或點地上走過去・拖曳畫面轉視角'; camera.position.set(.2,6.2,24.2); controls.update(); }   // 手機一開始鏡頭拉遠一點，看得到整個廣場
@@ -2170,12 +2170,17 @@ shopEl.addEventListener('click',e=>{ if(e.target.tagName==='BUTTON'&&getComputed
 /* ---------- 讀科普、小測驗（內容在最上面的 READS、QUIZ，或試算表） ---------- */
 const done={read:new Set(),quiz:new Set(),area:new Set()};
 const AREA_KEYS=()=>Object.keys(AREA_READS).filter(k=>STAGES[k]);
-const quizOpen=()=>AREA_KEYS().every(k=>done.area.has(k));   // 兩個展區的解說牌都看過，小測驗任務才開放
-const quizLeft=()=>QUIZ.length-done.quiz.size;
+/* 小測驗跟著解說牌解鎖（2026-11-20 作者）：看完哪一塊解說牌，才會加入那一塊的題目；讀過科普才有獼猴題。有新題目沒答，小測驗才會有紅點 */
+const quizSrc=q=>q.src||(/狐獴/.test(q.q)?'狐獴島':/虎|小紅|阿生|二妞/.test(q.q)?'孟加拉虎島':'read');
+const quizUnlocked=i=>{ const s=quizSrc(QUIZ[i]); return s==='read'?done.read.size>0:done.area.has(s); };
+const quizOpen=()=>QUIZ.some((_,i)=>quizUnlocked(i));
+const quizLeft=()=>QUIZ.reduce((c,_,i)=>c+(quizUnlocked(i)&&!done.quiz.has(i)?1:0),0);
+const quizCount=()=>QUIZ.reduce((c,_,i)=>c+(quizUnlocked(i)?1:0),0);
+function quizNews(before){ const add=quizCount()-before; if(add>0) toastLater(`小測驗新增 ${add} 題！（左上角任務、互動選單有紅點）`); drawQuest(); }
 let questKey='';
 function drawQuest(){ const el=document.getElementById('quest'), hudEl=document.getElementById('hud'); if(!el) return;
   const open=quizOpen(), left=quizLeft(), n=AREA_KEYS().filter(k=>done.area.has(k)).length, N=AREA_KEYS().length;
-  const txt=!open?`任務：看展區解說牌 ${n}/${N}`:left?`新任務：挑戰小測驗（還有 ${left} 題）`:'任務完成！之後會有新任務';
+  const txt=left?`新任務：挑戰小測驗（還有 ${left} 題）`:n<N?`任務：看展區解說牌 ${n}/${N}`:'任務完成！之後會有新任務';
   const key=txt+(open&&left); if(key!==questKey){ questKey=key; document.getElementById('questTxt').textContent=txt; el.classList.toggle('new',!!(open&&left)); document.getElementById('interBtn').classList.toggle('dot',!!(open&&left)); }
   const r=hudEl.getBoundingClientRect(), pr=hudEl.parentElement.getBoundingClientRect(); el.style.top=(r.bottom-pr.top+6)+'px'; el.style.left=(r.left-pr.left)+'px'; }
 // 直播：在網頁裡的「電視視窗」播（YouTube 嵌入，自動播放要靜音）；下面一定有到 YouTube 的連結（嵌入被擋時也看得到）
@@ -2188,7 +2193,7 @@ function openLive(k){ const L=LIVE[k]; if(!L) return; document.getElementById('l
   document.getElementById('livebox').classList.add('show'); }
 function closeLive(){ document.getElementById('livebox').classList.remove('show'); document.getElementById('liveFrame').src='about:blank'; }
 document.getElementById('liveClose').onclick=closeLive; document.getElementById('livebox').addEventListener('click',e=>{ if(e.target.id==='livebox') closeLive(); });
-function openAreaRead(k){ const R=AREA_READS[k]; if(!R) return; const first=!done.area.has(k);
+function openAreaRead(k){ const R=AREA_READS[k]; if(!R) return; const first=!done.area.has(k), before=quizCount();
   const body=R.secs?`${R.photos?`<figure class="rd-photo"><div class="rd-four">${R.photos.map(([u,n,bd])=>`<div><img src="${u}" alt="${n}"><b>${n}</b>${bd?`<i>${bd}</i>`:''}</div>`).join('')}</div>${R.photoSrc?`<figcaption><small style="display:block;font-size:11px;opacity:.8">${R.photoSrc}</small></figcaption>`:''}</figure>`:''}${R.photo?`<figure class="rd-photo"><img src="${R.photo}" alt="${R.photoCap||''}"><figcaption>${R.photoCap||''}${R.photoNote?`<span style="display:block;font-size:12px;color:#7a6a52">${R.photoNote}</span>`:''}${R.photoSrc?`<small style="display:block;font-size:11px;opacity:.8">${R.photoSrc}</small>`:''}</figcaption></figure>`:''}<div class="rd-secs">${R.secs.map(([ic,h,t])=>`<div class="rd-sec"><span class="rd-ic">${ic}</span><div><b>${h}</b><p>${t}</p></div></div>`).join('')}</div>
       ${R.tip?`<div class="rd-tip"><b>🧑‍🌾 保育員偷偷說</b><p>${R.tip}</p></div>`:''}
       ${R.dos?`<div class="rd-dos">${R.note?`<p>${R.note}</p>`:''}${R.dos.map(([m,t])=>`<div class="${m==='✅'?'ok':'no'}">${m} ${t}</div>`).join('')}</div>`:''}
@@ -2196,9 +2201,9 @@ function openAreaRead(k){ const R=AREA_READS[k]; if(!R) return; const first=!don
   mbox.innerHTML=`<div class="rd" style="--c:${R.color||'#4f7d44'}"><div class="rd-head"><div><h4>${R.t}</h4>${R.sub?`<small>${R.sub}</small>`:''}</div></div>
     <div class="rd-body">${body}</div><div class="rd-foot"><button id="mOk">${first?`看完了（+${CFG.讀科普獎金} 元）`:'關閉'}</button><span class="note">粉絲整理・非官方資料</span></div></div>`; modal.classList.add('show'); mbox.classList.add('wide');
   document.getElementById('mOk').onclick=()=>{ closeModal(); if(!first) return; done.area.add(k); inv.money+=CFG.讀科普獎金; addScore(CFG.讀科普分數); drawHud(); toast(`看完${R.t}，+${CFG.讀科普獎金} 元、+${CFG.讀科普分數} 分`);
-    if(quizOpen()) toastLater('兩個展區都逛完了！新任務：小測驗開放囉（左上角、互動選單有紅點）'); drawQuest(); }; }
+    quizNews(before); }; }
 const modal=document.getElementById('modal'), mbox=document.getElementById('mbox');
-const NOTE='<div class="note">（範例內容，正式版由園方提供文字）</div>';
+const NOTE='<div class="note">參考資料：壽山動物園官方臉書、IG、官方網站</div>';
 function closeModal(){ mbox.className='box'; mbox.style.removeProperty('--bag'); modal.classList.remove('show'); mbox.classList.remove('wide'); NPC_LIST.forEach(o=>{ o.talking=false; o.waved=false; }); }
 // NPC 對話：簡單動物科普（內容都來自已審過的解說牌）；答不出來就記下來，之後回覆
 const NPC_QA=[   // t：meerkat 狐獴、tiger 老虎、gen 一般
@@ -2279,20 +2284,20 @@ function closeChat(){ if(!chatNPC) return; chatNPC.talking=false; chatNPC.waved=
 document.getElementById('chatClose').onclick=closeChat;
 document.getElementById('chatSend').onclick=()=>{ const i=document.getElementById('chatIn'); chatAsk(i.value); i.value=''; };
 document.getElementById('chatIn').addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&!ev.isComposing){ chatAsk(ev.target.value); ev.target.value=''; } });
-document.getElementById('bRead').onclick=()=>{ const i=READS.findIndex((_,k)=>!done.read.has(k)); if(i<0) return toast('科普都讀完了，之後會再加新的');
+document.getElementById('bRead').onclick=()=>{ const i=READS.findIndex((_,k)=>!done.read.has(k)); if(i<0) return toast('科普都讀完了，之後會再加新的'); const before=quizCount();
   mbox.innerHTML=`<h4>${READS[i].t}</h4><p>${READS[i].p.replace(/\n/g,'<br>')}</p><button id="mOk">讀完了（+${CFG.讀科普獎金} 元）</button>${NOTE}`; modal.classList.add('show');
-  document.getElementById('mOk').onclick=()=>{ done.read.add(i); inv.money+=CFG.讀科普獎金; addScore(CFG.讀科普分數); closeModal(); toast(`讀完科普，+${CFG.讀科普獎金} 元、+${CFG.讀科普分數} 分`); if(done.read.size===READS.length) ach('reader'); }; };
-function nextQuizIdx(from){ const n=QUIZ.length; for(let k=1;k<=n;k++){ const j=((from??-1)+k+n)%n; if(!done.quiz.has(j)) return j; } return -1; }
+  document.getElementById('mOk').onclick=()=>{ done.read.add(i); inv.money+=CFG.讀科普獎金; addScore(CFG.讀科普分數); closeModal(); toast(`讀完科普，+${CFG.讀科普獎金} 元、+${CFG.讀科普分數} 分`); if(done.read.size===READS.length) ach('reader'); quizNews(before); }; };
+function nextQuizIdx(from){ const n=QUIZ.length; for(let k=1;k<=n;k++){ const j=((from??-1)+k+n)%n; if(quizUnlocked(j)&&!done.quiz.has(j)) return j; } return -1; }
 function openQuiz(i){ if(i<0) return toast('小測驗都答對了！');
   const q=QUIZ[i]; mbox.innerHTML=`<h4>小測驗　<small style="font-weight:400;color:#9a8f80">還有 ${quizLeft()} 題</small></h4><p>${q.q}</p>${q.a.map((t,k)=>`<button data-k="${k}">${t}</button>`).join('')}<div><button id="mNo" style="margin-top:10px">先不要</button></div>${NOTE}`; modal.classList.add('show');
   document.getElementById('mNo').onclick=closeModal;
   mbox.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ const ok=+b.dataset.k===q.ok;
-    if(ok){ done.quiz.add(i); inv.money+=CFG.答對獎金; addScore(CFG.答對分數); if(done.quiz.size===QUIZ.length) ach('quiz'); }
+    if(ok){ done.quiz.add(i); inv.money+=CFG.答對獎金; addScore(CFG.答對分數); if(done.quiz.size===QUIZ.length) ach('quiz'); drawQuest(); }
     const nx=nextQuizIdx(i), more=nx>=0;
     mbox.innerHTML=`<h4>${ok?'答對了！':'再想想看'}</h4>${ok?`<p style="color:#3f7f45;font-weight:700">+${CFG.答對獎金} 元、+${CFG.答對分數} 分</p>`:''}<p>${q.why||''}</p>
       <div class="qnav"><button id="qExit">離開</button>${more?`<button id="qNext" class="qnext">${nx===i?'再試一次':'下一題'} <b>→</b></button>`:''}</div>${more?'':'<p style="margin-top:8px;color:#8a7a62">題目都答完了，謝謝你！</p>'}`;
     document.getElementById('qExit').onclick=closeModal; if(more) document.getElementById('qNext').onclick=()=>openQuiz(nx); }); }
-document.getElementById('bQuiz').onclick=()=>{ if(!quizOpen()) return toast(`小測驗是任務：先去${AREA_KEYS().filter(k=>!done.area.has(k)).join('、')}看展場前的解說牌，看完就開放`); openQuiz(nextQuizIdx(-1)); };
+document.getElementById('bQuiz').onclick=()=>{ if(!quizLeft()) return toast(quizOpen()&&AREA_KEYS().every(k=>done.area.has(k))?'小測驗都答對了！':`看完解說牌就會加新題目：去${AREA_KEYS().filter(k=>!done.area.has(k)).join('、')}看展場前的解說牌，或按「讀科普」`); openQuiz(nextQuizIdx(-1)); };
 
 /* ---------- 獼猴：手上有「露在外面的食物」又在戶外，過一陣子就會來搶 ---------- */
 // 吃完的空杯空袋還有食物的味道，獼猴看到包裝一樣會來搶
