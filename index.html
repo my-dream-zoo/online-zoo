@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120182457';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120182638';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1122,7 +1122,7 @@ function blobGeo(w,h,depth){ const r=Math.min(.22,h/2-.01), sh=new THREE.Shape()
   const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,curveSegments:8}); g.translate(0,0,-depth/2); return g; }
 function gateFace(g,k,side,py=.37){ const colHex=AREA_COLOR[k]||'#ea8d2d', col=new THREE.MeshStandardMaterial({color:colHex,roughness:.7}), BW=3.4, BH=.92, by=2.75, ry=side>0?0:Math.PI;
   const board=new THREE.Mesh(blobGeo(BW,BH,.06),col); board.position.set(0,by,side*.075); g.add(board);
-  const [tt,asp]=titleTex(k,colHex), th=.5, tw=Math.min(BW-.3,th*asp); const tp=new THREE.Mesh(new THREE.PlaneGeometry(tw,tw/asp),new THREE.MeshStandardMaterial({map:tt,roughness:.7})); tp.position.set(0,by-.02,side*.14);   /* 字置中 */ tp.rotation.y=ry; g.add(tp);
+  const [tt,asp]=titleTex(k,colHex), th=.74, tw=Math.min(BW-.2,th*asp);   /* 字放大好閱讀，四周留一點邊 */ const tp=new THREE.Mesh(new THREE.PlaneGeometry(tw,tw/asp),new THREE.MeshStandardMaterial({map:tt,roughness:.7})); tp.position.set(0,by-.02,side*.14);   /* 字置中 */ tp.rotation.y=ry; g.add(tp);
   [-1,1].forEach(sd=>(AREA_PLANT[k]||AREA_PLANT.入口廣場).forEach((u,i)=>{ const pl=new THREE.Mesh(new THREE.PlaneGeometry(.75,.75),new THREE.MeshStandardMaterial({map:plantTex(u),transparent:true,alphaTest:.4,side:THREE.DoubleSide})); pl.position.set(sd*((py>.5?1.62:1.38)+(i?.3:-.28)),py,side*(.16+i*.08)); pl.rotation.y=sd*.4+(i?Math.PI/2.4:0); g.add(pl); })); }
 // 每座橋中間一座「雙面」區牌（2026-11-15 作者）：站在 A 這邊看到的那面寫 B（要去的地方），站在 B 那邊看到的那面寫 A；不會連續看到兩塊牌子
 function starGeo(r1,r2,d){ const sh=new THREE.Shape(); for(let i=0;i<10;i++){ const a=i/10*Math.PI*2+Math.PI/2, r=i%2?r2:r1; const x=Math.cos(a)*r, y=Math.sin(a)*r; if(i) sh.lineTo(x,y); else sh.moveTo(x,y); } sh.closePath(); const g=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2}); g.translate(0,0,-d/2); return g; }
