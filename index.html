@@ -150,10 +150,10 @@
   #loader .lfill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#d9a441,#c9853a);transition:width .35s ease}
   #loader .lpct{font-size:14px;color:#7a6f60;width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
   #loader .ltip{font-size:13px;color:#7a6f60;line-height:1.7;min-height:3.4em}
-  #ldGo{display:block;margin:4px auto 14px;padding:12px 38px;border:0;border-radius:99px;background:#c9853a;color:#fff;font-size:17px;font-weight:700;letter-spacing:.12em;box-shadow:0 4px 0 #9c6426;cursor:pointer;animation:ldbob 1.8s ease-in-out infinite}
-  #ldGo:focus{outline:none} #ldGo:focus-visible{outline:3px solid #8fae86;outline-offset:4px}
+  #ldGo{display:block;margin:4px auto 14px;padding:12px 38px;border:0;border-radius:99px;background:#c9853a;color:#fff;font-size:17px;font-weight:700;letter-spacing:.12em;box-shadow:0 4px 0 #9c6426,0 2px 0 5px #8fae86;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none;animation:ldbob 1.8s ease-in-out infinite}
+  #ldGo:focus,#ldGo:focus-visible{outline:none}   /* 綠框改用 box-shadow 貼著按鈕外圍，不用會有空隙的 outline */
   #loader.ready .spin::before{animation:none;border-color:#8fae86} #loader.ready .spin span{animation:none}
-  #ldGo[hidden]{display:none} #ldGo:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6426}
+  #ldGo[hidden]{display:none} #ldGo:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6426,0 0 0 5px #8fae86}
   @keyframes ldspin{to{transform:rotate(360deg)}}
   @keyframes ldbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   /* 直播視窗：做成一台電視的樣子 */
@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120171805';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120172254';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
