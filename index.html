@@ -304,7 +304,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120182202';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261120182457';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -1189,8 +1189,12 @@ Object.entries(ISLANDS).filter(([k,I])=>I.hut).forEach(([k,I])=>{ const S=I.sect
     const dome=new THREE.Mesh(new THREE.SphereGeometry(2.0,28,14,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:'#bfe6e0',roughness:.15,transparent:true,opacity:.55})); dome.position.y=1.3; g.add(dome);
     for(let i=0;i<6;i++){ const rib=new THREE.Mesh(new THREE.TorusGeometry(2.0,.04,6,24,Math.PI),trim); rib.position.y=1.3; rib.rotation.y=i/6*Math.PI; g.add(rib); }
     const ent=new THREE.Mesh(rboxGeo(1.6,1.9,1.0,.12),trim); ent.position.set(0,.95,1.9); ent.castShadow=true; g.add(ent); box(1.0,1.4,.06,std('#3e6b5a'),0,.72,2.42,g); }
-  const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.9,.42),new THREE.MeshBasicMaterial({map:signTex(title,'#fffaf0','#5a3c1c',420,92)})); sg.position.set(0,I.hut==='dome'?2.05:2.35,I.hut==='dome'?2.5:front+.08); if(I.hut==='tree'){ sg.position.set(1.5,1.45,1.86); sg.scale.setScalar(.8); const wd=std('#6f4a2c'); box(1.66,.44,.06,wd,1.5,1.45,1.82,g); [-.7,.7].forEach(o=>box(.09,1.6,.09,wd,1.5+o,.8,1.8,g)); } g.add(sg);   /* 樹屋：招牌改成階梯右邊的木頭立牌（屋簷太低，掛牆上會被擋住） */
-  { const sp=new THREE.Mesh(new THREE.PlaneGeometry(.9,.22),new THREE.MeshBasicMaterial({map:signTex('即將開放',AREA_COLOR[k]||'#c9853a','#ffffff',240,60)})); sp.position.copy(sg.position); sp.position.y-=.34; sp.position.z+=.01; if(I.hut==='tree'){ sp.position.set(0,1.95,.97); } g.add(sp); }   /* 樹屋：即將開放掛在門上 */   /* 即將開放：直接掛在小屋招牌下面 */
+  /* 招牌做成有厚度的板子（邊是深木色），貼在屋簷下、門上方的牆面，不會插進屋頂或凸出牆外（2026-11-20 作者） */
+  const plank=(w,h,d,tex,edge)=>{ const em=std(edge), fm=new THREE.MeshStandardMaterial({map:tex,roughness:.8}); const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[em,em,em,em,fm,em]); m.castShadow=true; return m; };
+  const SL=I.hut==='barn'?{w:1.5,h:.32,x:0,y:1.8,z:front+.045,cx:1.4,cy:1.15,cz:front+.03}:I.hut==='dome'?{w:1.4,h:.3,x:0,y:1.66,z:2.44,cx:0,cy:1.15,cz:2.47}:{w:1.52,h:.34,x:1.5,y:1.45,z:1.87,cx:0,cy:1.95,cz:.97};
+  const sg=plank(SL.w,SL.h,.07,signTex(title,'#fffaf0','#5a3c1c',420,92),'#6f4a2c'); sg.position.set(SL.x,SL.y,SL.z); g.add(sg);
+  if(I.hut==='tree'){ const wd=std('#6f4a2c'); box(1.66,.46,.06,wd,1.5,1.45,1.82,g); [-.7,.7].forEach(o=>box(.09,1.6,.09,wd,1.5+o,.8,1.8,g)); }   /* 樹屋：階梯右邊的木頭立牌（屋簷太低，掛牆上會被擋住） */
+  { const sp=plank(.9,.22,.04,signTex('即將開放',AREA_COLOR[k]||'#c9853a','#ffffff',240,60),'#fffaf0'); sp.position.set(SL.cx,SL.cy,SL.cz); g.add(sp); }   /* 即將開放：牧場小屋掛門右邊牆上，爬蟲館、樹屋掛門上 */
   STATIC.push({x:P.x,z:P.z,hw:I.hut==='dome'?2.1:W/2,hd:I.hut==='dome'?2.1:D/2+(I.hut==='tree'?.6:0),yaw});
   const dx=Math.sin(yaw), dz=Math.cos(yaw), dr=(I.hut==='dome'?2.5:I.hut==='tree'?front+1.85:front)+.9; const door={x:P.x+dx*dr,z:P.z+dz*dr};
   KEEP_CLEAR.push([door.x,door.z,1.5]); HUTS.push({title,x:door.x,z:door.z,island:k}); });
