@@ -314,7 +314,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261121105149';
+import { makeChibi, poseChibi, setHand, DEFAULT_LOOK } from './chibi.js?v=20261121105316';
 
 /* ==========================================================================
    內容與設定（園方可以自己改）
@@ -2399,7 +2399,7 @@ const NOTE='<div class="note">參考資料：壽山動物園官方臉書、IG、
 function openAbout(){
   mbox.innerHTML=`<h4>關於這個網站</h4><p>線上夢想動物園是高雄壽山動物園的粉絲，利用下班的閒暇時間自己做的夢想小島，不是動物園的官方網站。</p>
     <h4>畫面</h4><p>・場景、人物、植物、招牌都是用程式自己畫的<br>・植物的筆觸參考 Quaternius「Stylized Nature MegaKit」（CC0 授權）<br>・3D 引擎：three.js（MIT 授權）</p>
-    <h4>照片與資料</h4><p>・解說牌照片：壽山動物園新聞稿<br>・解說、小測驗、園區資訊：參考壽山動物園官方臉書、IG、官方網站</p>
+    <h4>照片與資料</h4><p>・解說牌照片、解說、小測驗、園區資訊：參考壽山動物園官方臉書、IG、官方網站</p>
     <button id="mClose" style="margin-top:6px">關閉</button>`;
   modal.classList.add('show'); document.getElementById('mClose').onclick=closeModal; }
 function closeModal(){ mbox.className='box'; mbox.style.removeProperty('--bag'); modal.classList.remove('show'); mbox.classList.remove('wide'); NPC_LIST.forEach(o=>{ o.talking=false; o.waved=false; }); }
